@@ -554,3 +554,22 @@ func TestParser_ExpressionWithLabelAndIdentifier(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, expectedNodes, s.commands)
 }
+
+func TestParser_CommandWithCommaSeparatedArgs(t *testing.T) {
+	script := "nop 4 + 5, -4 * 3, -5\n"
+
+	expectedNodes := []*CommandNode{
+		{CmdNop, []ExpressionNode{
+			&BinaryOpNode{&IntegerNode{4}, OpAdd, &IntegerNode{5}},
+			&BinaryOpNode{&UnaryOpNode{OpSub, &IntegerNode{4}}, OpMul, &IntegerNode{3}},
+			&UnaryOpNode{OpSub, &IntegerNode{5}},
+		}},
+	}
+
+	p := NewTestParser(script)
+
+	s, err := p.Parse()
+
+	require.NoError(t, err)
+	require.Equal(t, expectedNodes, s.commands)
+}
