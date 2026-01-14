@@ -75,21 +75,29 @@ func (f *RuntimeFrame) unmarshalArgs(argv []fx.ExpressionNode, v any) error {
 
 			if useDefaultValue {
 				switch valField.Interface().(type) {
-				case fx.Identifier, fx.Variable, fx.Flag:
+				case fx.Identifier:
 					return &ArgumentTypeError{argIdx, typField.Name, typField.Type.Name(), ErrInvalidOptional}
 				}
 			} else {
-				rawValue := f.eval(argv[argIdx])
+				node := argv[argIdx]
+				rawValue := f.eval(node)
 
 				switch valField.Interface().(type) {
-				case fx.Variable:
-					valField.Set(reflect.ValueOf(fx.Variable(rawValue.(int))))
-					break
 				case fx.Identifier:
-					valField.Set(reflect.ValueOf(fx.Identifier(rawValue.(int))))
-					break
-				case fx.Flag:
-					valField.Set(reflect.ValueOf(fx.Flag(rawValue.(int))))
+					if identNode, ok := node.(*fx.IdentifierNode); ok {
+						valField.Set(reflect.ValueOf(identNode.Identifier))
+					} else {
+						switch v := rawValue.(type) {
+						case int:
+							valField.Set(reflect.ValueOf(fx.Identifier(v)))
+							break
+						case float64:
+							valField.Set(reflect.ValueOf(fx.Identifier(int(v))))
+							break
+						default:
+							return &ArgumentTypeError{argIdx, typField.Name, typField.Type.Name(), fmt.Errorf("unsupported type: %T", rawValue)}
+						}
+					}
 					break
 				case int:
 					switch numericValue := rawValue.(type) {

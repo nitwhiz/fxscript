@@ -23,8 +23,6 @@ func (e *SyntaxError) Error() string {
 type ParserConfig struct {
 	CommandTypes CommandTypeTable
 	Identifiers  IdentifierTable
-	Variables    VariableTable
-	Flags        FlagTable
 }
 
 type Parser struct {
@@ -33,8 +31,6 @@ type Parser struct {
 
 	commandTypes CommandTypeTable
 	identifiers  IdentifierTable
-	variables    VariableTable
-	flags        FlagTable
 
 	done bool
 }
@@ -46,8 +42,6 @@ func NewParser(l *Lexer, c *ParserConfig) *Parser {
 
 		commandTypes: mergeTables(CommandTypeTable{}, baseCommandTypes, c.CommandTypes),
 		identifiers:  mergeTables(IdentifierTable{}, c.Identifiers),
-		variables:    mergeTables(VariableTable{}, c.Variables),
-		flags:        mergeTables(FlagTable{}, c.Flags),
 	}
 
 	return &p
@@ -141,14 +135,6 @@ func (p *Parser) getDefinedIdent(script *Script, tok *Token) ExpressionNode {
 		return &IdentifierNode{identifier}
 	}
 
-	if variable, ok := p.getVariable(tok.Value); ok {
-		return &VariableNode{variable}
-	}
-
-	if flag, ok := p.getFlag(tok.Value); ok {
-		return &FlagNode{flag}
-	}
-
 	return &LabelNode{tok.Value}
 }
 
@@ -165,7 +151,7 @@ func (p *Parser) parsePrimary(script *Script) (expr ExpressionNode, err error) {
 	case OperatorToken:
 		op := opRuneFromToken(tok)
 
-		if op == OpAdd || op == OpSub {
+		if op == OpAdd || op == OpSub || op == OpPtr || op == OpInv {
 			var operand ExpressionNode
 
 			operand, err = p.parsePrimary(script)

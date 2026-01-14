@@ -26,14 +26,14 @@ var keywords = map[string]TokenType{
 	"endmacro": EndMacroToken,
 }
 
-// todo: implement ~ or ^ as bitwise NOT
-
 const (
 	OpAdd = '+'
 	OpSub = '-'
 	OpMul = '*'
 	OpDiv = '/'
 	OpMod = '%'
+	OpPtr = '*'
+	OpInv = '^'
 )
 
 type Token struct {
@@ -54,7 +54,7 @@ func isWhitespace(c byte) bool {
 }
 
 func isOperator(c byte) bool {
-	return c == OpAdd || c == OpSub || c == OpMul || c == OpDiv || c == OpMod
+	return c == OpAdd || c == OpSub || c == OpMul || c == OpDiv || c == OpMod || c == OpPtr || c == OpInv
 }
 
 type Lexer struct {

@@ -4,20 +4,12 @@ type CommandType int
 
 type Identifier int
 
-type Variable int
-
-type Flag int
-
 type CommandTypeTable map[string]CommandType
 
 type IdentifierTable map[string]Identifier
 
-type VariableTable map[string]Variable
-
-type FlagTable map[string]Flag
-
 func mergeTables[T interface {
-	CommandType | Identifier | Variable | Flag
+	CommandType | Identifier
 }](dst map[string]T, tables ...map[string]T) map[string]T {
 
 	for _, t := range tables {
@@ -36,16 +28,6 @@ func (p *Parser) getCommandType(name string) (CommandType, bool) {
 
 func (p *Parser) getIdentifier(name string) (Identifier, bool) {
 	v, ok := p.identifiers[name]
-	return v, ok
-}
-
-func (p *Parser) getVariable(name string) (Variable, bool) {
-	v, ok := p.variables[name]
-	return v, ok
-}
-
-func (p *Parser) getFlag(name string) (Flag, bool) {
-	v, ok := p.flags[name]
 	return v, ok
 }
 

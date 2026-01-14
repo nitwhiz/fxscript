@@ -34,14 +34,6 @@ type IdentifierNode struct {
 	Identifier Identifier
 }
 
-type VariableNode struct {
-	Variable Variable
-}
-
-type FlagNode struct {
-	Flag Flag
-}
-
 type ConstantNode struct {
 	Name string
 }
@@ -64,8 +56,6 @@ type BinaryOpNode struct {
 func (n *FloatNode) exprNode()      {}
 func (n *IntegerNode) exprNode()    {}
 func (n *IdentifierNode) exprNode() {}
-func (n *VariableNode) exprNode()   {}
-func (n *FlagNode) exprNode()       {}
 func (n *ConstantNode) exprNode()   {}
 func (n *StringNode) exprNode()     {}
 func (n *AddressNode) exprNode()    {}
@@ -95,14 +85,6 @@ func (n *IntegerNode) String() string {
 
 func (n *IdentifierNode) String() string {
 	return fmt.Sprintf("i!%d", n.Identifier)
-}
-
-func (n *VariableNode) String() string {
-	return fmt.Sprintf("v!%d", n.Variable)
-}
-
-func (n *FlagNode) String() string {
-	return fmt.Sprintf("f!%d", n.Flag)
 }
 
 func (n *ConstantNode) String() string {

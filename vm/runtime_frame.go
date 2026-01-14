@@ -43,19 +43,19 @@ func (f *RuntimeFrame) CmdGoto(jumpPc int) (jumpTarget int, jump bool) {
 	return jumpPc, true
 }
 
-func (f *RuntimeFrame) CmdAdd(variable fx.Variable, value int) {
+func (f *RuntimeFrame) CmdAdd(variable fx.Identifier, value int) {
 	f.Set(variable, f.Get(variable)+value)
 }
 
-func (f *RuntimeFrame) CmdJumpIf(variable fx.Variable, value int, jumpPc int) (pc int, jump bool) {
+func (f *RuntimeFrame) CmdJumpIf(variable fx.Identifier, value int, jumpPc int) (pc int, jump bool) {
 	return jumpPc, f.Get(variable) == value
 }
 
-func (f *RuntimeFrame) CmdJumpIfFlag(variable fx.Variable, flag fx.Flag, jumpPc int) (pc int, jump bool) {
+func (f *RuntimeFrame) CmdJumpIfFlag(variable fx.Identifier, flag fx.Identifier, jumpPc int) (pc int, jump bool) {
 	return jumpPc, f.CmdFlag(variable, flag)
 }
 
-func (f *RuntimeFrame) CmdJumpIfNotFlag(variable fx.Variable, flag fx.Flag, jumpPc int) (pc int, jump bool) {
+func (f *RuntimeFrame) CmdJumpIfNotFlag(variable fx.Identifier, flag fx.Identifier, jumpPc int) (pc int, jump bool) {
 	return jumpPc, !f.CmdFlag(variable, flag)
 }
 
@@ -82,22 +82,22 @@ func (f *RuntimeFrame) CmdRet() (pc int, jump bool) {
 	return
 }
 
-func (f *RuntimeFrame) CmdCopy(from, to fx.Variable) {
+func (f *RuntimeFrame) CmdCopy(from, to fx.Identifier) {
 	f.Set(to, f.Get(from))
 }
 
-func (f *RuntimeFrame) CmdSet(variable fx.Variable, value int) {
+func (f *RuntimeFrame) CmdSet(variable fx.Identifier, value int) {
 	f.Set(variable, value)
 }
 
-func (f *RuntimeFrame) CmdSetFlag(variable fx.Variable, flag fx.Flag) {
+func (f *RuntimeFrame) CmdSetFlag(variable fx.Identifier, flag fx.Identifier) {
 	f.Set(variable, int(variable)&int(flag))
 }
 
-func (f *RuntimeFrame) CmdClearFlag(variable fx.Variable, flag fx.Flag) {
+func (f *RuntimeFrame) CmdClearFlag(variable fx.Identifier, flag fx.Identifier) {
 	f.Set(variable, int(variable)&^int(flag))
 }
 
-func (f *RuntimeFrame) CmdFlag(variable fx.Variable, flag fx.Flag) (result bool) {
+func (f *RuntimeFrame) CmdFlag(variable fx.Identifier, flag fx.Identifier) (result bool) {
 	return f.Get(variable)&int(flag) != 0
 }

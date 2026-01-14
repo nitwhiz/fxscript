@@ -53,13 +53,27 @@ func (f *RuntimeFrame) dispatchUnaryOpEval(n *fx.UnaryOpNode) any {
 
 	switch n.Operator {
 	case fx.OpSub:
-		switch operand.(type) {
+		switch v := operand.(type) {
 		case int:
-			return -operand.(int)
+			return -v
 		case float64:
-			return -operand.(float64)
-		default:
-			break
+			return -v
+		}
+	case fx.OpPtr:
+		switch v := operand.(type) {
+		case fx.Identifier:
+			return f.Get(v)
+		case int:
+			return f.Get(fx.Identifier(v))
+		case float64:
+			return f.Get(fx.Identifier(int(v)))
+		}
+	case fx.OpInv:
+		switch v := operand.(type) {
+		case int:
+			return ^v
+		case float64:
+			return ^int(v)
 		}
 	default:
 		break
@@ -136,13 +150,9 @@ func (f *RuntimeFrame) eval(node fx.ExpressionNode) any {
 	case *fx.FloatNode:
 		return n.Value
 	case *fx.IdentifierNode:
-		return int(n.Identifier)
-	case *fx.VariableNode:
-		return f.Get(n.Variable)
+		return n.Identifier
 	case *fx.AddressNode:
 		return n.Address
-	case *fx.FlagNode:
-		return int(n.Flag)
 	default:
 		return 0
 	}

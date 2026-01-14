@@ -10,8 +10,8 @@ type Environment interface {
 	HandleError(err error)
 	HostCall(f *RuntimeFrame, args []any) (pc int, jump bool)
 
-	Get(variable fx.Variable) (value int)
-	Set(variable fx.Variable, value int)
+	Get(variable fx.Identifier) (value int)
+	Set(variable fx.Identifier, value int)
 }
 
 type Runtime struct {

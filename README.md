@@ -1,16 +1,18 @@
 # FXScript
 
-A simple script language parser and runtime for Go.
+A simple mission script language parser and runtime for Go.
 
 ## Features
 
 - Custom commands
 - Expression evaluation
-- Variables, identifiers, flags
+- Identifiers and constants
 - Labels and control flow (`goto`, `call`, `ret`)
 - Preprocessor directives (`@include`)
 - Script-level directives (`const`, `macro`)
+- Conditional jumps (`jumpIf`, `jumpIfFlag`, `jumpIfNotFlag`)
 - `hostCall` for `vm.Environment` interaction
+- Pointers `*`
 
 ## Installation
 
@@ -31,14 +33,14 @@ The `Environment` interface allows the `Runtime` to interact with your applicati
 
 ```go
 type MyEnvironment struct {
-    values map[fx.Variable]int
+    values map[fx.Identifier]int
 }
 
-func (e *MyEnvironment) Get(variable fx.Variable) int {
+func (e *MyEnvironment) Get(variable fx.Identifier) int {
     return e.values[variable]
 }
 
-func (e *MyEnvironment) Set(variable fx.Variable, value int) {
+func (e *MyEnvironment) Set(variable fx.Identifier, value int) {
     e.values[variable] = value
 }
 
@@ -46,7 +48,7 @@ func (e *MyEnvironment) HandleError(err error) {
     fmt.Printf("Runtime error: %v\n", err)
 }
 
-func (e *MyEnvironment) HostCall(f *vm.RuntimeFrame, args []any) (jumpTarget int, jump bool) {
+func (e *MyEnvironment) HostCall(f *vm.RuntimeFrame, args []any) (pc int, jump bool) {
     // Handle host calls from script
     return
 }
@@ -56,7 +58,7 @@ func (e *MyEnvironment) HostCall(f *vm.RuntimeFrame, args []any) (jumpTarget int
 
 ```go
 config := &fx.ParserConfig{
-    Variables: fx.VariableTable{
+    Variables: fx.IdentifierTable{
         "health": 1,
         "score":  2,
     },
@@ -69,7 +71,7 @@ script, err := fx.LoadScript([]byte("set health 100\n"), config)
 
 ```go
 r := vm.NewRuntime(script)
-myEnv := &MyEnvironment{values: make(map[fx.Variable]int)}
+myEnv := &MyEnvironment{values: make(map[fx.Identifier]int)}
 
 r.Start(0, myEnv)
 ```
@@ -84,13 +86,28 @@ r.Call("myLabel", myEnv)
 
 ## Script Syntax
 
-### Variables and Values
+### Identifiers and Values
 
-Variables are mapped to integer IDs. In the script, they are used by name if defined in the `ParserConfig`.
+Identifiers are mapped to integer IDs. In the script, they are used by name if defined in the `ParserConfig`.
 
 ```
 set health 100
 add health 10
+```
+
+### Pointer and Invert Operators
+
+Use `*` to retrieve a value from an address pointed to by an identifier or expression:
+
+```
+set a 100
+set b (*a + 1)
+```
+
+Use `^` for bitwise NOT:
+
+```
+set a ^1
 ```
 
 ### Expressions
@@ -117,18 +134,18 @@ end:
 
 - `@include "other.fx"`: Includes another script file
 - `const name value`: Defines a constant
-- `macro name ... end`: Defines a macro
+- `macro name ... endmacro`: Defines a macro
 
 ### Built-in Commands
 
 - `nop`: No operation
-- `set <var> <value>`: Set variable to value
-- `copy <from_var> <to_var>`: Copy value from one variable to another
-- `add <var> <value>`: Add value to variable
+- `set <ident> <value>`: Set identifier to value
+- `copy <from_ident> <to_ident>`: Copy value from one identifier to another
+- `add <ident> <value>`: Add value to identifier value in memory
 - `goto <label/addr>`: Jump to label or address
 - `call <label/addr>`: Call subroutine
 - `ret`: Return from subroutine
-- `jumpIf <var> <value> <label/addr>`: Jump if variable equals value
+- `jumpIf <ident> <value> <label/addr>`: Jump if identifier equals value
 - `hostCall ...args`: Call `HostCall` on the runtime environment
 
 ## Custom Commands
@@ -162,7 +179,7 @@ r.RegisterCommands([]*vm.Command{
     },
 })
 
-myEnv := &MyEnvironment{values: make(map[fx.Variable]int)}
+myEnv := &MyEnvironment{values: make(map[fx.Identifier]int)}
 r.Start(0, myEnv)
 ```
 
@@ -183,7 +200,7 @@ For commands that take arguments, you can use the `vm.WithArgs` helper to automa
 
 ```go
 type MyArgs struct {
-    Target fx.Variable `arg:""`
+    Target fx.Identifier `arg:""`
     Value  int         `arg:""`
 }
 

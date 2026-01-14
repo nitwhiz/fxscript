@@ -20,17 +20,14 @@ const (
 )
 
 const (
-	varA = iota
+	varA fx.Identifier = iota
 	varB
 	varC
-)
-
-const (
-	identAlpha = iota
+	identAlpha
 )
 
 type TestEnv struct {
-	values map[fx.Variable]int
+	values map[fx.Identifier]int
 
 	testValue        bool
 	lastHostCallArgs []any
@@ -44,7 +41,7 @@ func (e *TestEnv) HostCall(_ *RuntimeFrame, args []any) (pc int, jump bool) {
 
 func NewTestEnv(s string) (*Runtime, *TestEnv, error) {
 	e := &TestEnv{
-		values: make(map[fx.Variable]int),
+		values: make(map[fx.Identifier]int),
 	}
 
 	r, err := e.Load(s)
@@ -72,13 +69,11 @@ func (e *TestEnv) Load(s string) (*Runtime, error) {
 
 	fxs, err := fx.LoadScript([]byte(s), &fx.ParserConfig{
 		CommandTypes: commandTypes,
-		Variables: fx.VariableTable{
-			"a": varA,
-			"b": varB,
-			"c": varC,
-		},
 		Identifiers: fx.IdentifierTable{
 			"alpha": identAlpha,
+			"a":     varA,
+			"b":     varB,
+			"c":     varC,
 		},
 	})
 
@@ -99,7 +94,7 @@ func (e *TestEnv) HandleError(err error) {
 	e.lastError = err
 }
 
-func (e *TestEnv) Get(variable fx.Variable) (value int) {
+func (e *TestEnv) Get(variable fx.Identifier) (value int) {
 	if val, ok := e.values[variable]; ok {
 		return val
 	}
@@ -107,7 +102,7 @@ func (e *TestEnv) Get(variable fx.Variable) (value int) {
 	return 0
 }
 
-func (e *TestEnv) Set(variable fx.Variable, value int) {
+func (e *TestEnv) Set(variable fx.Identifier, value int) {
 	e.values[variable] = value
 }
 
@@ -182,10 +177,10 @@ func TestAddIntAndFloat(t *testing.T) {
 	require.Equal(t, 4, env.values[varA])
 }
 
-func TestSetAddWithVariableArgument(t *testing.T) {
+func TestSetAddWithVariableArgumentAndPointer(t *testing.T) {
 	script := `
 		set a (1 + 2)
-		set (a + 1) (3 * 3)
+		set (*a + 1) (3 * 3)
 	`
 
 	r, env, err := NewTestEnv(script)
@@ -197,6 +192,52 @@ func TestSetAddWithVariableArgument(t *testing.T) {
 	require.Equal(t, 3, env.values[varA])
 
 	require.Equal(t, 9, env.values[varA+4])
+}
+
+func TestInvertOperator(t *testing.T) {
+	script := `
+		set a ^0
+		set b ^1
+		set c ^-1
+	`
+
+	env := runScript(t, script)
+
+	require.Equal(t, ^0, env.values[varA])
+	require.Equal(t, ^1, env.values[varB])
+	require.Equal(t, ^-1, env.values[varC])
+}
+
+func TestComplexPointerAndInvert(t *testing.T) {
+	script := `
+		set c ^(*a + *b)
+	`
+
+	r, env, err := NewTestEnv(script)
+	require.NoError(t, err)
+
+	env.values[varA] = 13
+	env.values[varB] = 42
+
+	r.Start(0, env)
+
+	require.Equal(t, ^(13 + 42), env.values[varC])
+}
+
+func TestNestedPointers(t *testing.T) {
+	script := `
+		set a, *(*b)
+	`
+
+	r, env, err := NewTestEnv(script)
+	require.NoError(t, err)
+
+	env.values[varB] = 100
+	env.values[100] = 42
+
+	r.Start(0, env)
+
+	require.Equal(t, 42, env.values[varA])
 }
 
 func TestCallLabel(t *testing.T) {

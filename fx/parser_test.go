@@ -34,14 +34,11 @@ func NewTestParser(script string) *Parser {
 			"print":         cmdPrint,
 		},
 		Identifiers: IdentifierTable{
-			"attacker":       attacker,
-			"recoilTypeMiss": recoilTypeMiss,
-		},
-		Variables: VariableTable{
+			"attacker":         attacker,
+			"recoilTypeMiss":   recoilTypeMiss,
 			"multiHitCounter":  multiHitCounter,
 			"upperMemoryStart": upperMemoryStart,
 		},
-		Flags: nil,
 	})
 
 	return p
@@ -171,7 +168,7 @@ func TestParser_Label(t *testing.T) {
 		{CmdGoto, []ExpressionNode{&AddressNode{9}}},
 		{CmdGoto, []ExpressionNode{&AddressNode{6}}},
 		{CmdNop, nil},
-		{CmdSet, []ExpressionNode{&VariableNode{multiHitCounter}, &IntegerNode{3}}},
+		{CmdSet, []ExpressionNode{&IdentifierNode{multiHitCounter}, &IntegerNode{3}}},
 	}
 
 	expectedLabelPtrs := map[string]int{
@@ -543,7 +540,7 @@ func TestParser_ExpressionWithLabelAndIdentifier(t *testing.T) {
 
 	expectedNodes := []*CommandNode{
 		{cmdAccuracyCheck, []ExpressionNode{&BinaryOpNode{&AddressNode{2}, OpAdd, &IntegerNode{2}}}},
-		{cmdAccuracyCheck, []ExpressionNode{&BinaryOpNode{&AddressNode{2}, OpMul, &BinaryOpNode{&VariableNode{upperMemoryStart}, OpAdd, &IntegerNode{3}}}}},
+		{cmdAccuracyCheck, []ExpressionNode{&BinaryOpNode{&AddressNode{2}, OpMul, &BinaryOpNode{&IdentifierNode{upperMemoryStart}, OpAdd, &IntegerNode{3}}}}},
 		{cmdPrint, []ExpressionNode{&StringNode{"hey!"}}},
 	}
 

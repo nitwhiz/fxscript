@@ -31,8 +31,8 @@ func handleGoto(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, j
 
 func handleSet(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump bool) {
 	type Args struct {
-		Variable fx.Variable `arg:""`
-		Value    int         `arg:""`
+		Variable fx.Identifier `arg:""`
+		Value    int           `arg:""`
 	}
 
 	return WithArgs(f, cmdArgs, func(f *RuntimeFrame, args *Args) (jumpTarget int, jump bool) {
@@ -43,8 +43,8 @@ func handleSet(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, ju
 
 func handleCopy(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump bool) {
 	type Args struct {
-		From fx.Variable `arg:""`
-		To   fx.Variable `arg:""`
+		From fx.Identifier `arg:""`
+		To   fx.Identifier `arg:""`
 	}
 
 	return WithArgs(f, cmdArgs, func(f *RuntimeFrame, args *Args) (jumpTarget int, jump bool) {
@@ -55,8 +55,8 @@ func handleCopy(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, j
 
 func handleAdd(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump bool) {
 	type Args struct {
-		Variable fx.Variable `arg:""`
-		Value    int         `arg:""`
+		Variable fx.Identifier `arg:""`
+		Value    int           `arg:""`
 	}
 
 	return WithArgs(f, cmdArgs, func(f *RuntimeFrame, args *Args) (jumpTarget int, jump bool) {
@@ -81,9 +81,9 @@ func handleRet(f *RuntimeFrame, _ []fx.ExpressionNode) (jumpTarget int, jump boo
 
 func handleJumpIf(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump bool) {
 	type Args struct {
-		Variable   fx.Variable `arg:""`
-		Value      int         `arg:""`
-		JumpTarget int         `arg:""`
+		Variable   fx.Identifier `arg:""`
+		Value      int           `arg:""`
+		JumpTarget int           `arg:""`
 	}
 
 	return WithArgs(f, cmdArgs, func(f *RuntimeFrame, args *Args) (jumpTarget int, jump bool) {
@@ -93,8 +93,8 @@ func handleJumpIf(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int,
 
 func handleSetFlag(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump bool) {
 	type Args struct {
-		Variable fx.Variable `arg:""`
-		Flag     fx.Flag     `arg:""`
+		Variable fx.Identifier `arg:""`
+		Flag     fx.Identifier `arg:""`
 	}
 
 	return WithArgs(f, cmdArgs, func(f *RuntimeFrame, args *Args) (jumpTarget int, jump bool) {
@@ -105,8 +105,8 @@ func handleSetFlag(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int
 
 func handleClearFlag(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump bool) {
 	type Args struct {
-		Variable fx.Variable `arg:""`
-		Flag     fx.Flag     `arg:""`
+		Variable fx.Identifier `arg:""`
+		Flag     fx.Identifier `arg:""`
 	}
 
 	return WithArgs(f, cmdArgs, func(f *RuntimeFrame, args *Args) (jumpTarget int, jump bool) {
@@ -117,9 +117,9 @@ func handleClearFlag(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget i
 
 func handleJumpIfFlag(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump bool) {
 	type Args struct {
-		Variable   fx.Variable `arg:""`
-		Flag       fx.Flag     `arg:""`
-		JumpTarget int         `arg:""`
+		Variable   fx.Identifier `arg:""`
+		Flag       fx.Identifier `arg:""`
+		JumpTarget int           `arg:""`
 	}
 
 	return WithArgs(f, cmdArgs, func(f *RuntimeFrame, args *Args) (jumpTarget int, jump bool) {
@@ -129,9 +129,9 @@ func handleJumpIfFlag(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget 
 
 func handleJumpIfNotFlag(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump bool) {
 	type Args struct {
-		Variable   fx.Variable `arg:""`
-		Flag       fx.Flag     `arg:""`
-		JumpTarget int         `arg:""`
+		Variable   fx.Identifier `arg:""`
+		Flag       fx.Identifier `arg:""`
+		JumpTarget int           `arg:""`
 	}
 
 	return WithArgs(f, cmdArgs, func(f *RuntimeFrame, args *Args) (jumpTarget int, jump bool) {
