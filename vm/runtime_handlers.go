@@ -4,19 +4,8 @@ import (
 	"github.com/nitwhiz/fxscript/fx"
 )
 
-func handleNop(f *RuntimeFrame, _ []fx.ExpressionNode) (jumpTarget int, jump bool) {
-	f.CmdNop()
+func handleNop(*RuntimeFrame, []fx.ExpressionNode) (jumpTarget int, jump bool) {
 	return
-}
-
-func handleHostCall(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump bool) {
-	args := make([]any, len(cmdArgs))
-
-	for i, arg := range cmdArgs {
-		args[i] = f.eval(arg)
-	}
-
-	return f.HostCall(f, args)
 }
 
 func handleGoto(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump bool) {
@@ -25,7 +14,7 @@ func handleGoto(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, j
 	}
 
 	return WithArgs(f, cmdArgs, func(f *RuntimeFrame, args *Args) (jumpTarget int, jump bool) {
-		return f.CmdGoto(args.JumpTarget)
+		return args.JumpTarget, true
 	})
 }
 
@@ -36,31 +25,7 @@ func handleSet(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, ju
 	}
 
 	return WithArgs(f, cmdArgs, func(f *RuntimeFrame, args *Args) (jumpTarget int, jump bool) {
-		f.CmdSet(args.Variable, args.Value)
-		return
-	})
-}
-
-func handleCopy(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump bool) {
-	type Args struct {
-		From fx.Identifier `arg:""`
-		To   fx.Identifier `arg:""`
-	}
-
-	return WithArgs(f, cmdArgs, func(f *RuntimeFrame, args *Args) (jumpTarget int, jump bool) {
-		f.CmdCopy(args.From, args.To)
-		return
-	})
-}
-
-func handleAdd(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump bool) {
-	type Args struct {
-		Variable fx.Identifier `arg:""`
-		Value    int           `arg:""`
-	}
-
-	return WithArgs(f, cmdArgs, func(f *RuntimeFrame, args *Args) (jumpTarget int, jump bool) {
-		f.CmdAdd(args.Variable, args.Value)
+		f.Set(args.Variable, args.Value)
 		return
 	})
 }
@@ -71,70 +36,41 @@ func handleCall(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, j
 	}
 
 	return WithArgs(f, cmdArgs, func(f *RuntimeFrame, args *Args) (jumpTarget int, jump bool) {
-		return f.CmdCall(args.Addr)
+		if args.Addr == 0 {
+			return f.script.EndOfScript(), true
+		}
+
+		f.pushPC()
+		return args.Addr, true
 	})
 }
 
 func handleRet(f *RuntimeFrame, _ []fx.ExpressionNode) (jumpTarget int, jump bool) {
-	return f.CmdRet()
+	var ok bool
+
+	jump = true
+
+	jumpTarget, ok = f.popPC()
+
+	if !ok {
+		jumpTarget = f.script.EndOfScript()
+	}
+
+	return
 }
 
 func handleJumpIf(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump bool) {
 	type Args struct {
-		Variable   fx.Identifier `arg:""`
-		Value      int           `arg:""`
-		JumpTarget int           `arg:""`
+		Condition  int `arg:""`
+		JumpTarget int `arg:""`
 	}
 
 	return WithArgs(f, cmdArgs, func(f *RuntimeFrame, args *Args) (jumpTarget int, jump bool) {
-		return f.CmdJumpIf(args.Variable, args.Value, args.JumpTarget)
-	})
-}
+		if args.Condition != 0 {
+			jumpTarget = args.JumpTarget
+			jump = true
+		}
 
-func handleSetFlag(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump bool) {
-	type Args struct {
-		Variable fx.Identifier `arg:""`
-		Flag     fx.Identifier `arg:""`
-	}
-
-	return WithArgs(f, cmdArgs, func(f *RuntimeFrame, args *Args) (jumpTarget int, jump bool) {
-		f.CmdSetFlag(args.Variable, args.Flag)
 		return
-	})
-}
-
-func handleClearFlag(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump bool) {
-	type Args struct {
-		Variable fx.Identifier `arg:""`
-		Flag     fx.Identifier `arg:""`
-	}
-
-	return WithArgs(f, cmdArgs, func(f *RuntimeFrame, args *Args) (jumpTarget int, jump bool) {
-		f.CmdClearFlag(args.Variable, args.Flag)
-		return
-	})
-}
-
-func handleJumpIfFlag(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump bool) {
-	type Args struct {
-		Variable   fx.Identifier `arg:""`
-		Flag       fx.Identifier `arg:""`
-		JumpTarget int           `arg:""`
-	}
-
-	return WithArgs(f, cmdArgs, func(f *RuntimeFrame, args *Args) (jumpTarget int, jump bool) {
-		return f.CmdJumpIfFlag(args.Variable, args.Flag, args.JumpTarget)
-	})
-}
-
-func handleJumpIfNotFlag(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump bool) {
-	type Args struct {
-		Variable   fx.Identifier `arg:""`
-		Flag       fx.Identifier `arg:""`
-		JumpTarget int           `arg:""`
-	}
-
-	return WithArgs(f, cmdArgs, func(f *RuntimeFrame, args *Args) (jumpTarget int, jump bool) {
-		return f.CmdJumpIfNotFlag(args.Variable, args.Flag, args.JumpTarget)
 	})
 }

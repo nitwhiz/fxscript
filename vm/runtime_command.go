@@ -7,8 +7,18 @@ import (
 type CommandHandler func(f *RuntimeFrame, args []fx.ExpressionNode) (jumpTarget int, jump bool)
 
 type Command struct {
+	Name    string
 	Typ     fx.CommandType
 	Handler CommandHandler
+}
+
+var BaseCommands = []*Command{
+	{"nop", fx.CmdNop, handleNop},
+	{"goto", fx.CmdGoto, handleGoto},
+	{"set", fx.CmdSet, handleSet},
+	{"call", fx.CmdCall, handleCall},
+	{"ret", fx.CmdRet, handleRet},
+	{"jumpIf", fx.CmdJumpIf, handleJumpIf},
 }
 
 func (r *Runtime) registerCommand(cmd *Command) {
@@ -25,22 +35,4 @@ func (r *Runtime) RegisterCommands(commands []*Command) {
 	for _, cmd := range commands {
 		r.registerCommand(cmd)
 	}
-}
-
-func (r *Runtime) registerBaseCommands() {
-	r.RegisterCommands([]*Command{
-		{fx.CmdNop, handleNop},
-		{fx.CmdHostCall, handleHostCall},
-		{fx.CmdGoto, handleGoto},
-		{fx.CmdSet, handleSet},
-		{fx.CmdAdd, handleAdd},
-		{fx.CmdCall, handleCall},
-		{fx.CmdRet, handleRet},
-		{fx.CmdJumpIf, handleJumpIf},
-		{fx.CmdSetFlag, handleSetFlag},
-		{fx.CmdClearFlag, handleClearFlag},
-		{fx.CmdJumpIfFlag, handleJumpIfFlag},
-		{fx.CmdJumpIfNotFlag, handleJumpIfNotFlag},
-		{fx.CmdCopy, handleCopy},
-	})
 }

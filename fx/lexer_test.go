@@ -13,11 +13,11 @@ func TestLexer_Ident(t *testing.T) {
 	`
 
 	expectedTokens := []*Token{
-		{IdentToken, "cmd1"},
-		{IdentToken, "arg1"},
-		{NewlineToken, ""},
-		{IdentToken, "cmd2"},
-		{NewlineToken, ""},
+		{IDENT, "cmd1"},
+		{IDENT, "arg1"},
+		{NEWLINE, ""},
+		{IDENT, "cmd2"},
+		{NEWLINE, ""},
 		{EOF, ""},
 	}
 
@@ -32,14 +32,14 @@ func TestLexer_Numbers(t *testing.T) {
 	script := "42 -15 +39.55 -42.0\n"
 
 	expectedTokens := []*Token{
-		{NumberToken, "42"},
-		{OperatorToken, "-"},
-		{NumberToken, "15"},
-		{OperatorToken, "+"},
-		{NumberToken, "39.55"},
-		{OperatorToken, "-"},
-		{NumberToken, "42.0"},
-		{NewlineToken, ""},
+		{NUMBER, "42"},
+		{SUB, "-"},
+		{NUMBER, "15"},
+		{ADD, "+"},
+		{NUMBER, "39.55"},
+		{SUB, "-"},
+		{NUMBER, "42.0"},
+		{NEWLINE, ""},
 		{EOF, ""},
 	}
 
@@ -54,18 +54,18 @@ func TestLexer_OperatorsAndNumbers(t *testing.T) {
 	script := "+42 + 13 - 37 * -72 / 42\n"
 
 	expectedTokens := []*Token{
-		{OperatorToken, "+"},
-		{NumberToken, "42"},
-		{OperatorToken, "+"},
-		{NumberToken, "13"},
-		{OperatorToken, "-"},
-		{NumberToken, "37"},
-		{OperatorToken, "*"},
-		{OperatorToken, "-"},
-		{NumberToken, "72"},
-		{OperatorToken, "/"},
-		{NumberToken, "42"},
-		{NewlineToken, ""},
+		{ADD, "+"},
+		{NUMBER, "42"},
+		{ADD, "+"},
+		{NUMBER, "13"},
+		{SUB, "-"},
+		{NUMBER, "37"},
+		{MUL, "*"},
+		{SUB, "-"},
+		{NUMBER, "72"},
+		{DIV, "/"},
+		{NUMBER, "42"},
+		{NEWLINE, ""},
 		{EOF, ""},
 	}
 
@@ -80,24 +80,99 @@ func TestLexer_OperatorsWithParens(t *testing.T) {
 	script := "(+42 + 13) - (37 * (-72 / 42 ))\n"
 
 	expectedTokens := []*Token{
-		{LParenToken, ""},
-		{OperatorToken, "+"},
-		{NumberToken, "42"},
-		{OperatorToken, "+"},
-		{NumberToken, "13"},
-		{RParenToken, ""},
-		{OperatorToken, "-"},
-		{LParenToken, ""},
-		{NumberToken, "37"},
-		{OperatorToken, "*"},
-		{LParenToken, ""},
-		{OperatorToken, "-"},
-		{NumberToken, "72"},
-		{OperatorToken, "/"},
-		{NumberToken, "42"},
-		{RParenToken, ""},
-		{RParenToken, ""},
-		{NewlineToken, ""},
+		{LPAREN, ""},
+		{ADD, "+"},
+		{NUMBER, "42"},
+		{ADD, "+"},
+		{NUMBER, "13"},
+		{RPAREN, ""},
+		{SUB, "-"},
+		{LPAREN, ""},
+		{NUMBER, "37"},
+		{MUL, "*"},
+		{LPAREN, ""},
+		{SUB, "-"},
+		{NUMBER, "72"},
+		{DIV, "/"},
+		{NUMBER, "42"},
+		{RPAREN, ""},
+		{RPAREN, ""},
+		{NEWLINE, ""},
+		{EOF, ""},
+	}
+
+	l := NewLexer([]byte(script))
+
+	tokens := l.Lex()
+
+	require.Equal(t, expectedTokens, tokens)
+}
+
+func TestLexer_InvOperator(t *testing.T) {
+	script := "^42 ^-13\n"
+
+	expectedTokens := []*Token{
+		{INV, "^"},
+		{NUMBER, "42"},
+		{INV, "^"},
+		{SUB, "-"},
+		{NUMBER, "13"},
+		{NEWLINE, ""},
+		{EOF, ""},
+	}
+
+	l := NewLexer([]byte(script))
+
+	tokens := l.Lex()
+
+	require.Equal(t, expectedTokens, tokens)
+}
+
+func TestLexer_AddrOfOperator(t *testing.T) {
+	script := "&42 &13\n"
+
+	expectedTokens := []*Token{
+		{AND, "&"},
+		{NUMBER, "42"},
+		{AND, "&"},
+		{NUMBER, "13"},
+		{NEWLINE, ""},
+		{EOF, ""},
+	}
+
+	l := NewLexer([]byte(script))
+
+	tokens := l.Lex()
+
+	require.Equal(t, expectedTokens, tokens)
+}
+
+func TestLexer_And(t *testing.T) {
+	script := "4 & 16\n"
+
+	expectedTokens := []*Token{
+		{NUMBER, "4"},
+		{AND, "&"},
+		{NUMBER, "16"},
+		{NEWLINE, ""},
+		{EOF, ""},
+	}
+
+	l := NewLexer([]byte(script))
+
+	tokens := l.Lex()
+
+	require.Equal(t, expectedTokens, tokens)
+}
+
+func TestLexer_Or(t *testing.T) {
+	script := "4 | 16\n"
+
+	expectedTokens := []*Token{
+		{NUMBER, "4"},
+		{OR, "|"},
+		{NUMBER, "16"},
+		{NEWLINE, ""},
 		{EOF, ""},
 	}
 
@@ -115,12 +190,12 @@ func TestLexer_Labels(t *testing.T) {
 	`
 
 	expectedTokens := []*Token{
-		{IdentToken, "some-label"},
-		{ColonToken, ""},
-		{NewlineToken, ""},
-		{IdentToken, "someLabel2"},
-		{ColonToken, ""},
-		{NewlineToken, ""},
+		{IDENT, "some-label"},
+		{COLON, ""},
+		{NEWLINE, ""},
+		{IDENT, "someLabel2"},
+		{COLON, ""},
+		{NEWLINE, ""},
 		{EOF, ""},
 	}
 
@@ -139,14 +214,14 @@ func TestLexer_Macro(t *testing.T) {
 	`
 
 	expectedTokens := []*Token{
-		{MacroToken, ""},
-		{IdentToken, "myMacro"},
-		{NewlineToken, ""},
-		{IdentToken, "hello"},
-		{IdentToken, "world"},
-		{NewlineToken, ""},
-		{EndMacroToken, ""},
-		{NewlineToken, ""},
+		{MACRO, ""},
+		{IDENT, "myMacro"},
+		{NEWLINE, ""},
+		{IDENT, "hello"},
+		{IDENT, "world"},
+		{NEWLINE, ""},
+		{ENDMACRO, ""},
+		{NEWLINE, ""},
 		{EOF, ""},
 	}
 
@@ -164,14 +239,14 @@ func TestLexer_Constants(t *testing.T) {
 	`
 
 	expectedTokens := []*Token{
-		{ConstToken, ""},
-		{IdentToken, "msgHello"},
-		{StringToken, "Hello World!"},
-		{NewlineToken, ""},
-		{ConstToken, ""},
-		{IdentToken, "wordCount"},
-		{NumberToken, "2"},
-		{NewlineToken, ""},
+		{CONST, ""},
+		{IDENT, "msgHello"},
+		{STRING, "Hello World!"},
+		{NEWLINE, ""},
+		{CONST, ""},
+		{IDENT, "wordCount"},
+		{NUMBER, "2"},
+		{NEWLINE, ""},
 		{EOF, ""},
 	}
 
@@ -189,27 +264,10 @@ func TestLexer_Strings(t *testing.T) {
 	`
 
 	expectedTokens := []*Token{
-		{StringToken, "Hello World!"},
-		{NewlineToken, ""},
-		{StringToken, "Strings can .contain all @sorts of -42.1337 # characters"},
-		{NewlineToken, ""},
-		{EOF, ""},
-	}
-
-	l := NewLexer([]byte(script))
-
-	tokens := l.Lex()
-
-	require.Equal(t, expectedTokens, tokens)
-}
-
-func TestLexer_StringAndNumber(t *testing.T) {
-	script := "\"Hello World!\" -42.0"
-
-	expectedTokens := []*Token{
-		{StringToken, "Hello World!"},
-		{OperatorToken, "-"},
-		{NumberToken, "42.0"},
+		{STRING, "Hello World!"},
+		{NEWLINE, ""},
+		{STRING, "Strings can .contain all @sorts of -42.1337 # characters"},
+		{NEWLINE, ""},
 		{EOF, ""},
 	}
 

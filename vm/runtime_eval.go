@@ -24,67 +24,209 @@ func div[T numeric](a, b T) T {
 	return a / b
 }
 
-func mod[T numeric](a, b T) T {
+func mod[T numeric](a, b T) int {
 	ia := int(a)
 	ib := int(b)
 
-	return T(ia % ib)
+	return ia % ib
 }
 
-func evalOp[T numeric](op rune, a, b T) T {
-	switch op {
-	case fx.OpAdd:
-		return add(a, b)
-	case fx.OpSub:
-		return sub(a, b)
-	case fx.OpMul:
-		return mul(a, b)
-	case fx.OpDiv:
-		return div(a, b)
-	case fx.OpMod:
-		return mod(a, b)
-	default:
-		return 0
+func eq[T numeric](a, b T) int {
+	if a == b {
+		return 1
 	}
+
+	return 0
 }
 
-func (f *RuntimeFrame) dispatchUnaryOpEval(n *fx.UnaryOpNode) any {
-	operand := f.eval(n.Expr)
+func neq[T numeric](a, b T) int {
+	return 1 - eq(a, b)
+}
 
-	switch n.Operator {
-	case fx.OpSub:
-		switch v := operand.(type) {
-		case int:
-			return -v
-		case float64:
-			return -v
-		}
-	case fx.OpPtr:
-		switch v := operand.(type) {
-		case fx.Identifier:
-			return f.Get(v)
-		case int:
-			return f.Get(fx.Identifier(v))
-		case float64:
-			return f.Get(fx.Identifier(int(v)))
-		}
-	case fx.OpInv:
-		switch v := operand.(type) {
-		case int:
-			return ^v
-		case float64:
-			return ^int(v)
-		}
+func lt[T numeric](a, b T) int {
+	if a < b {
+		return 1
+	}
+
+	return 0
+}
+
+func gt[T numeric](a, b T) int {
+	if a > b {
+		return 1
+	}
+
+	return 0
+}
+
+func lte[T numeric](a, b T) int {
+	if a <= b {
+		return 1
+	}
+
+	return 0
+}
+
+func gte[T numeric](a, b T) int {
+	if a >= b {
+		return 1
+	}
+
+	return 0
+}
+
+func shl[T numeric](a, b T) int {
+	return int(a) << int(b)
+}
+
+func shr[T numeric](a, b T) int {
+	return int(a) >> int(b)
+}
+
+func and[T numeric](a, b T) int {
+	return int(a) & int(b)
+}
+
+func or[T numeric](a, b T) int {
+	return int(a) | int(b)
+}
+
+func xor[T numeric](a, b T) int {
+	return int(a) ^ int(b)
+}
+
+func evalOp[T numeric](op fx.TokenType, a, b T) (v T, err error) {
+	switch op {
+	case fx.ADD:
+		v = add(a, b)
+		break
+	case fx.SUB:
+		v = sub(a, b)
+		break
+	case fx.MUL:
+		v = mul(a, b)
+		break
+	case fx.DIV:
+		v = div(a, b)
+		break
+	case fx.MOD:
+		v = T(mod(a, b))
+		break
+	case fx.LT:
+		v = T(lt(a, b))
+		break
+	case fx.GT:
+		v = T(gt(a, b))
+		break
+	case fx.LTE:
+		v = T(lte(a, b))
+		break
+	case fx.GTE:
+		v = T(gte(a, b))
+		break
+	case fx.EQ:
+		v = T(eq(a, b))
+		break
+	case fx.NEQ:
+		v = T(neq(a, b))
+		break
+	case fx.SHL:
+		v = T(shl(a, b))
+		break
+	case fx.SHR:
+		v = T(shr(a, b))
+		break
+	case fx.AND:
+		v = T(and(a, b))
+		break
+	case fx.OR:
+		v = T(or(a, b))
+		break
+	case fx.INV:
+		v = T(xor(a, b))
+		break
 	default:
+		err = &fx.SyntaxError{&fx.UnknownOperatorError{op}}
 		break
 	}
 
-	return operand
+	return
 }
 
-func (f *RuntimeFrame) dispatchBinaryOpEval(n *fx.BinaryOpNode) any {
-	left := f.eval(n.Left)
-	right := f.eval(n.Right)
+func (f *RuntimeFrame) evalUnaryOp(n *fx.UnaryOpNode) (v any, err error) {
+	if n.Operator.Type == fx.AND {
+		if v, ok := n.Expr.(*fx.IdentifierNode); ok {
+			return int(v.Identifier), nil
+		}
+	}
+
+	v, err = f.Eval(n.Expr)
+
+	if err != nil {
+		return
+	}
+
+	switch n.Operator.Type {
+	case fx.SUB:
+		switch o := v.(type) {
+		case int:
+			v = -o
+			break
+		case float64:
+			v = -o
+			break
+		}
+	case fx.MUL:
+		switch o := v.(type) {
+		case fx.Identifier:
+			v = f.Get(o)
+			break
+		case int:
+			v = f.Get(fx.Identifier(o))
+			break
+		case float64:
+			v = f.Get(fx.Identifier(int(o)))
+			break
+		}
+	case fx.INV:
+		switch o := v.(type) {
+		case int:
+			v = ^o
+			break
+		case float64:
+			v = ^int(o)
+			break
+		}
+	case fx.EXCL:
+		switch o := v.(type) {
+		case int, float64:
+			if o == 0 {
+				v = 1
+			} else {
+				v = 1
+			}
+			break
+		}
+	default:
+		err = &fx.SyntaxError{&fx.UnknownOperatorError{n.Operator.Type}}
+		break
+	}
+
+	return
+}
+
+func (f *RuntimeFrame) evalBinaryOp(n *fx.BinaryOpNode) (any, error) {
+	left, err := f.Eval(n.Left)
+
+	if err != nil {
+		return 0, err
+	}
+
+	right, err := f.Eval(n.Right)
+
+	if err != nil {
+		return 0, err
+	}
 
 	var ok bool
 
@@ -119,41 +261,48 @@ func (f *RuntimeFrame) dispatchBinaryOpEval(n *fx.BinaryOpNode) any {
 	}
 
 	if iLeft != nil && iRight != nil {
-		return evalOp(n.Operator, *iLeft, *iRight)
+		return evalOp(n.Operator.Type, *iLeft, *iRight)
 	}
 
 	if fLeft != nil && fRight != nil {
-		return evalOp(n.Operator, *fLeft, *fRight)
+		return evalOp(n.Operator.Type, *fLeft, *fRight)
 	}
 
 	if iLeft != nil && fRight != nil {
-		return evalOp(n.Operator, float64(*iLeft), *fRight)
+		return evalOp(n.Operator.Type, float64(*iLeft), *fRight)
 	}
 
 	if fLeft != nil && iRight != nil {
-		return evalOp(n.Operator, *fLeft, float64(*iRight))
+		return evalOp(n.Operator.Type, *fLeft, float64(*iRight))
 	}
 
-	return 0
+	return 0, &fx.RuntimeError{&fx.UnexpectedBinaryOpError{left, right}}
 }
 
-func (f *RuntimeFrame) eval(node fx.ExpressionNode) any {
+func (f *RuntimeFrame) Eval(node fx.ExpressionNode) (v any, err error) {
 	switch n := node.(type) {
 	case *fx.BinaryOpNode:
-		return f.dispatchBinaryOpEval(n)
+		v, err = f.evalBinaryOp(n)
+		break
 	case *fx.UnaryOpNode:
-		return f.dispatchUnaryOpEval(n)
+		v, err = f.evalUnaryOp(n)
+		break
 	case *fx.StringNode:
-		return n.Value
+		v = n.Value
+		break
 	case *fx.IntegerNode:
-		return n.Value
+		v = n.Value
+		break
 	case *fx.FloatNode:
-		return n.Value
+		v = n.Value
+		break
 	case *fx.IdentifierNode:
-		return n.Identifier
+		v = f.Get(n.Identifier)
+		break
 	case *fx.AddressNode:
-		return n.Address
-	default:
-		return 0
+		v = n.Address
+		break
 	}
+
+	return
 }

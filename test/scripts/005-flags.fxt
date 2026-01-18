@@ -1,0 +1,23 @@
+
+const flag 1 << 4
+
+set A, 1
+set A, A | flag
+eval A
+
+set A, A & ^flag
+eval A
+
+set A, 17
+set A, A ^ flag
+eval A
+
+set A, 17
+set A, (A & flag) == flag
+eval A
+
+--- EXPECT ---
+17
+1
+1
+1

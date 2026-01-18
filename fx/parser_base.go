@@ -1,7 +1,6 @@
 package fx
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -11,14 +10,6 @@ import (
 const (
 	tokenPrefetch = 16
 )
-
-type SyntaxError struct {
-	Message string
-}
-
-func (e *SyntaxError) Error() string {
-	return fmt.Sprintf("syntax error: %s", e.Message)
-}
 
 type ParserConfig struct {
 	CommandTypes CommandTypeTable
@@ -40,8 +31,8 @@ func NewParser(l *Lexer, c *ParserConfig) *Parser {
 		l:   l,
 		buf: ring.NewBuffer[*Token](1024),
 
-		commandTypes: mergeTables(CommandTypeTable{}, baseCommandTypes, c.CommandTypes),
-		identifiers:  mergeTables(IdentifierTable{}, c.Identifiers),
+		commandTypes: c.CommandTypes,
+		identifiers:  c.Identifiers,
 	}
 
 	return &p
@@ -114,7 +105,7 @@ func (p *Parser) parseMacro(script *Script) (err error) {
 	ok := true
 
 	for ok {
-		ok, err = p.parseNextNode(subscript, EndMacroToken)
+		ok, err = p.parseNextNode(subscript, ENDMACRO)
 
 		if err != nil {
 			return
@@ -146,27 +137,20 @@ func (p *Parser) parsePrimary(script *Script) (expr ExpressionNode, err error) {
 	}
 
 	switch tok.Type {
-	case NewlineToken:
+	case NEWLINE:
 		return
-	case OperatorToken:
-		op := opRuneFromToken(tok)
+	case ADD, SUB, MUL, EXCL, INV, AND:
+		var operand ExpressionNode
 
-		if op == OpAdd || op == OpSub || op == OpPtr || op == OpInv {
-			var operand ExpressionNode
+		operand, err = p.parsePrimary(script)
 
-			operand, err = p.parsePrimary(script)
-
-			if err != nil {
-				return
-			}
-
-			expr = &UnaryOpNode{op, operand}
+		if err != nil {
 			return
 		}
 
-		err = &SyntaxError{"unexpected operator '" + tok.Value + "'"}
+		expr = &UnaryOpNode{tok, operand}
 		return
-	case LParenToken:
+	case LPAREN:
 		expr, err = p.parseExpression(script)
 
 		if err != nil {
@@ -179,13 +163,13 @@ func (p *Parser) parsePrimary(script *Script) (expr ExpressionNode, err error) {
 			return
 		}
 
-		if tok.Type != RParenToken {
-			err = &SyntaxError{"expected ')'"}
+		if tok.Type != RPAREN {
+			err = &SyntaxError{&UnexpectedTokenError{[]TokenType{RPAREN}, tok}}
 			return
 		}
 
 		return
-	case NumberToken:
+	case NUMBER:
 		if strings.Contains(tok.Value, ".") {
 			var val float64
 
@@ -209,124 +193,96 @@ func (p *Parser) parsePrimary(script *Script) (expr ExpressionNode, err error) {
 
 		expr = &IntegerNode{int(val)}
 		return
-	case StringToken:
+	case STRING:
 		expr = &StringNode{tok.Value}
 		return
-	case IdentToken:
+	case IDENT:
 		expr = p.getDefinedIdent(script, tok)
 		return
 	default:
-		err = &SyntaxError{"unexpected token '" + tok.Value + "'"}
+		err = &SyntaxError{&UnexpectedTokenError{[]TokenType{NEWLINE, ADD, SUB, MUL, EXCL, INV, AND, LPAREN, NUMBER, STRING, IDENT}, tok}}
 		return
 	}
-}
-
-func opRuneFromToken(tok *Token) (opRune rune) {
-	if len(tok.Value) > 0 {
-		opRune = rune(tok.Value[0])
-	}
-
-	return
-}
-
-func (p *Parser) parseMultiplicative(script *Script) (expr ExpressionNode, err error) {
-	expr, err = p.parsePrimary(script)
-
-	if err != nil {
-		return
-	}
-
-	tok, err := p.peek()
-
-	if err != nil {
-		return
-	}
-
-	for {
-		opRune := opRuneFromToken(tok)
-
-		if tok.Type != OperatorToken || (opRune != OpMul && opRune != OpDiv && opRune != OpMod) {
-			break
-		}
-
-		if _, err = p.advance(); err != nil {
-			return
-		}
-
-		var right ExpressionNode
-
-		right, err = p.parsePrimary(script)
-
-		if err != nil {
-			return
-		}
-
-		expr = &BinaryOpNode{
-			Left:     expr,
-			Operator: opRune,
-			Right:    right,
-		}
-
-		tok, err = p.peek()
-
-		if err != nil {
-			return
-		}
-	}
-
-	return
-}
-
-func (p *Parser) parseAdditive(script *Script) (expr ExpressionNode, err error) {
-	expr, err = p.parseMultiplicative(script)
-
-	if err != nil {
-		return
-	}
-
-	tok, err := p.peek()
-
-	if err != nil {
-		return
-	}
-
-	for {
-		opRune := opRuneFromToken(tok)
-
-		if tok.Type != OperatorToken || (opRune != OpAdd && opRune != OpSub) {
-			break
-		}
-
-		if _, err = p.advance(); err != nil {
-			return
-		}
-
-		var right ExpressionNode
-
-		right, err = p.parseMultiplicative(script)
-
-		if err != nil {
-			return
-		}
-
-		expr = &BinaryOpNode{
-			Left:     expr,
-			Operator: opRune,
-			Right:    right,
-		}
-
-		tok, err = p.peek()
-
-		if err != nil {
-			return
-		}
-	}
-
-	return
 }
 
 func (p *Parser) parseExpression(script *Script) (ExpressionNode, error) {
-	return p.parseAdditive(script)
+	return p.parseEquality(script)
+}
+
+func (p *Parser) parseMultiplicative(script *Script) (expr ExpressionNode, err error) {
+	return p.parseBinary(script, p.parsePrimary, MUL, DIV, MOD)
+}
+
+func (p *Parser) parseAdditive(script *Script) (expr ExpressionNode, err error) {
+	return p.parseBinary(script, p.parseMultiplicative, ADD, SUB, AND, OR, INV)
+}
+
+func (p *Parser) parseEquality(script *Script) (ExpressionNode, error) {
+	return p.parseBinary(script, p.parseComparison, EQ, NEQ)
+}
+
+func (p *Parser) parseComparison(script *Script) (expr ExpressionNode, err error) {
+	return p.parseBinary(script, p.parseShift, LT, GT, LTE, GTE)
+}
+
+func (p *Parser) parseShift(script *Script) (expr ExpressionNode, err error) {
+	return p.parseBinary(script, p.parseAdditive, SHL, SHR)
+}
+
+func (p *Parser) parseBinary(script *Script, next func(script *Script) (ExpressionNode, error), ops ...TokenType) (expr ExpressionNode, err error) {
+	expr, err = next(script)
+
+	if err != nil {
+		return
+	}
+
+	var current *Token
+
+	for {
+		current, err = p.peek()
+
+		if err != nil {
+			return
+		}
+
+		if !contains(ops, current.Type) {
+			break
+		}
+
+		op := current
+
+		_, err = p.advance()
+
+		if err != nil {
+			return
+		}
+
+		var right ExpressionNode
+
+		right, err = next(script)
+
+		if err != nil {
+			return
+		}
+
+		expr = &BinaryOpNode{
+			Left:     expr,
+			Operator: op,
+			Right:    right,
+		}
+	}
+
+	return
+}
+
+func contains(ops []TokenType, tokType TokenType) bool {
+	for _, op := range ops {
+		if op == tokType {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (p *Parser) parseConst(script *Script) (err error) {
@@ -359,7 +315,7 @@ func (p *Parser) parseCommand(script *Script) (err error) {
 			return
 		}
 
-		if tok.Type == NewlineToken || tok.Type == EOF {
+		if tok.Type == NEWLINE || tok.Type == EOF {
 			if cmd.Type != CmdNone {
 				script.commands = append(script.commands, &cmd)
 			}
@@ -382,7 +338,7 @@ func (p *Parser) parseCommand(script *Script) (err error) {
 				if ok {
 					script.commands = append(script.commands, m.commands...)
 				} else {
-					err = &SyntaxError{"unknown command: '" + tok.Value + "'"}
+					err = &SyntaxError{&UnknownCommandError{tok.Value}}
 					return
 				}
 			} else {
@@ -403,7 +359,7 @@ func (p *Parser) parseCommand(script *Script) (err error) {
 				return
 			}
 
-			if tok.Type == CommaToken {
+			if tok.Type == COMMA {
 				_, err = p.advance()
 
 				if err != nil {
@@ -443,7 +399,7 @@ func (p *Parser) parseIdent(script *Script) (err error) {
 		return
 	}
 
-	if tok.Type == ColonToken {
+	if tok.Type == COLON {
 		err = p.parseLabelDeclaration(script)
 		return
 	}
@@ -468,24 +424,24 @@ func (p *Parser) parseNextNode(script *Script, end TokenType) (ok bool, err erro
 		if _, err = p.advance(); err != nil {
 			return
 		}
-	case MacroToken:
+	case MACRO:
 		if err = p.parseMacro(script); err != nil {
 			return
 		}
-	case ConstToken:
+	case CONST:
 		if err = p.parseConst(script); err != nil {
 			return
 		}
-	case IdentToken:
+	case IDENT:
 		if err = p.parseIdent(script); err != nil {
 			return
 		}
-	case NewlineToken:
+	case NEWLINE:
 		if _, err = p.advance(); err != nil {
 			return
 		}
 	default:
-		err = &SyntaxError{"unexpected token"}
+		err = &SyntaxError{&UnexpectedTokenError{[]TokenType{end, MACRO, CONST, IDENT, NEWLINE}, tok}}
 		return
 	}
 
@@ -514,7 +470,7 @@ func replaceLabelNodesInExpression(script *Script, expr ExpressionNode) (resultE
 		pc, ok := script.labels[n.Name]
 
 		if !ok {
-			err = &SyntaxError{"unknown label: '" + n.Name + "'"}
+			err = &SyntaxError{&UnknownLabelError{n.Name}}
 			return
 		}
 

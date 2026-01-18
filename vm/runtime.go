@@ -8,10 +8,9 @@ type ErrorHandler func(err error)
 
 type Environment interface {
 	HandleError(err error)
-	HostCall(f *RuntimeFrame, args []any) (pc int, jump bool)
 
-	Get(variable fx.Identifier) (value int)
-	Set(variable fx.Identifier, value int)
+	Get(identifier fx.Identifier) (value int)
+	Set(identifier fx.Identifier, value int)
 }
 
 type Runtime struct {
@@ -19,13 +18,14 @@ type Runtime struct {
 	handlers []CommandHandler
 }
 
-func NewRuntime(s *fx.Script) *Runtime {
+func NewRuntime(s *fx.Script, cfg *RuntimeConfig) *Runtime {
 	r := Runtime{
 		script:   s,
 		handlers: make([]CommandHandler, 0, fx.UserCommandOffset),
 	}
 
-	r.registerBaseCommands()
+	r.RegisterCommands(BaseCommands)
+	r.RegisterCommands(cfg.UserCommands)
 
 	return &r
 }

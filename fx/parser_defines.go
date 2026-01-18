@@ -8,19 +8,6 @@ type CommandTypeTable map[string]CommandType
 
 type IdentifierTable map[string]Identifier
 
-func mergeTables[T interface {
-	CommandType | Identifier
-}](dst map[string]T, tables ...map[string]T) map[string]T {
-
-	for _, t := range tables {
-		for k, v := range t {
-			dst[k] = v
-		}
-	}
-
-	return dst
-}
-
 func (p *Parser) getCommandType(name string) (CommandType, bool) {
 	v, ok := p.commandTypes[name]
 	return v, ok
@@ -34,35 +21,11 @@ func (p *Parser) getIdentifier(name string) (Identifier, bool) {
 const (
 	CmdNone CommandType = iota
 	CmdNop
-	CmdHostCall
-	CmdGoto
-	CmdSet
-	CmdCopy
-	CmdSetFlag
-	CmdClearFlag
-	CmdAdd
 	CmdCall
 	CmdRet
+	CmdGoto
+	CmdSet
 	CmdJumpIf
-	CmdJumpIfFlag
-	CmdJumpIfNotFlag
 
-	UserCommandOffset
+	UserCommandOffset = 100
 )
-
-var baseCommandTypes = CommandTypeTable{
-	"none":          CmdNone,
-	"nop":           CmdNop,
-	"hostCall":      CmdHostCall,
-	"goto":          CmdGoto,
-	"set":           CmdSet,
-	"copy":          CmdCopy,
-	"setFlag":       CmdSetFlag,
-	"clearFlag":     CmdClearFlag,
-	"add":           CmdAdd,
-	"call":          CmdCall,
-	"ret":           CmdRet,
-	"jumpIf":        CmdJumpIf,
-	"jumpIfFlag":    CmdJumpIfFlag,
-	"jumpIfNotFlag": CmdJumpIfNotFlag,
-}

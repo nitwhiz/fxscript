@@ -80,7 +80,11 @@ func (f *RuntimeFrame) unmarshalArgs(argv []fx.ExpressionNode, v any) error {
 				}
 			} else {
 				node := argv[argIdx]
-				rawValue := f.eval(node)
+				rawValue, err := f.Eval(node)
+
+				if err != nil {
+					return err
+				}
 
 				switch valField.Interface().(type) {
 				case fx.Identifier:

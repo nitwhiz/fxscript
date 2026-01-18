@@ -1,0 +1,45 @@
+
+set A, 5
+
+test1_loop:
+  set A, A - 1
+  jumpIf A <= 1, test1_end,
+  goto test1_loop
+
+test1_end:
+  eval A
+
+test2:
+  set A, 5
+  jumpIf A == 5 test2_skip
+  set A, 10
+test2_skip:
+  eval A
+
+test3:
+  set A, 5
+  jumpIf A != 5 test3_skip
+  set A, 10
+test3_skip:
+  eval A
+
+test4:
+  set A, 5
+  jumpIf !A test4_skip
+  set A, 10
+test4_skip:
+  eval A
+
+test5:
+  set A, 5
+  jumpIf A test5_skip
+  set A, 10
+test5_skip:
+  eval A
+
+--- EXPECT ---
+1
+5
+10
+5
+5

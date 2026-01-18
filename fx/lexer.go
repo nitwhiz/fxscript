@@ -1,46 +1,5 @@
 package fx
 
-type TokenType int
-
-const (
-	EOF TokenType = iota
-	IllegalToken
-
-	NewlineToken
-	CommaToken
-	IdentToken
-	NumberToken
-	ColonToken
-	MacroToken
-	EndMacroToken
-	ConstToken
-	StringToken
-	OperatorToken
-	LParenToken
-	RParenToken
-)
-
-var keywords = map[string]TokenType{
-	"const":    ConstToken,
-	"macro":    MacroToken,
-	"endmacro": EndMacroToken,
-}
-
-const (
-	OpAdd = '+'
-	OpSub = '-'
-	OpMul = '*'
-	OpDiv = '/'
-	OpMod = '%'
-	OpPtr = '*'
-	OpInv = '^'
-)
-
-type Token struct {
-	Type  TokenType
-	Value string
-}
-
 func isAlpha(c byte) bool {
 	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_' || c == '-'
 }
@@ -54,7 +13,15 @@ func isWhitespace(c byte) bool {
 }
 
 func isOperator(c byte) bool {
-	return c == OpAdd || c == OpSub || c == OpMul || c == OpDiv || c == OpMod || c == OpPtr || c == OpInv
+	switch string(c) {
+	case SynPlus, SynMinus,
+		SynAsterisk, SynSlash, SynPercent,
+		SynExcl, SynInv, SynAmpersand, SynPipe,
+		SynLower, SynGreater, SynEqual:
+		return true
+	}
+
+	return false
 }
 
 type Lexer struct {
@@ -83,13 +50,6 @@ func NewLexer(source []byte) *Lexer {
 func (l *Lexer) Rewind() {
 	l.pos = 0
 	l.line = 1
-}
-
-func (l *Lexer) newToken(typ TokenType, value string) *Token {
-	return &Token{
-		Type:  typ,
-		Value: value,
-	}
 }
 
 func (l *Lexer) peekAhead(n int) byte {
@@ -168,10 +128,10 @@ func (l *Lexer) lexIdent() *Token {
 	ident := l.substr(n)
 
 	if tokTyp, ok := keywords[ident]; ok {
-		return l.newToken(tokTyp, "")
+		return newToken(tokTyp, "")
 	}
 
-	return l.newToken(IdentToken, ident)
+	return newToken(IDENT, ident)
 }
 
 func (l *Lexer) lexNumber() *Token {
@@ -187,11 +147,79 @@ func (l *Lexer) lexNumber() *Token {
 		}
 	}
 
-	return l.newToken(NumberToken, l.substr(n))
+	return newToken(NUMBER, l.substr(n))
 }
 
 func (l *Lexer) lexOperator() *Token {
-	return l.newToken(OperatorToken, string(l.advance()))
+	var opVal string
+	tokType := ILLEGAL
+
+	switch string(l.peekAhead(1)) {
+	case SynEqual, SynLower, SynGreater:
+		opVal = string(l.advance()) + string(l.advance())
+		break
+	default:
+		opVal = string(l.advance())
+		break
+	}
+
+	switch opVal {
+	case SynAmpersand:
+		tokType = AND
+		break
+	case SynPipe:
+		tokType = OR
+		break
+	case SynExcl:
+		tokType = EXCL
+		break
+	case SynInv:
+		tokType = INV
+		break
+	case SynPlus:
+		tokType = ADD
+		break
+	case SynMinus:
+		tokType = SUB
+		break
+	case SynAsterisk:
+		tokType = MUL
+		break
+	case SynSlash:
+		tokType = DIV
+		break
+	case SynPercent:
+		tokType = MOD
+		break
+	case SynLower:
+		tokType = LT
+		break
+	case SynGreater:
+		tokType = GT
+		break
+	case SynLower + SynLower:
+		tokType = SHL
+		break
+	case SynGreater + SynGreater:
+		tokType = SHR
+		break
+	case SynLower + SynEqual:
+		tokType = LTE
+		break
+	case SynGreater + SynEqual:
+		tokType = GTE
+		break
+	case SynEqual + SynEqual:
+		tokType = EQ
+		break
+	case SynExcl + SynEqual:
+		tokType = NEQ
+		break
+	default:
+		break
+	}
+
+	return newToken(tokType, opVal)
 }
 
 func (l *Lexer) lexString() *Token {
@@ -203,7 +231,7 @@ func (l *Lexer) lexString() *Token {
 		n += 1
 	}
 
-	token := l.newToken(StringToken, l.substr(n))
+	token := newToken(STRING, l.substr(n))
 
 	l.advance()
 
@@ -218,18 +246,18 @@ func (l *Lexer) lexNextToken() *Token {
 
 	if c == 0 {
 		l.done = true
-		return l.newToken(EOF, "")
+		return newToken(EOF, "")
 	}
 
 	if c == ',' {
 		l.advance()
-		return l.newToken(CommaToken, "")
+		return newToken(COMMA, "")
 	}
 
 	if c == '\n' {
 		l.advance()
 
-		tok := l.newToken(NewlineToken, "")
+		tok := newToken(NEWLINE, "")
 
 		l.line += 1
 
@@ -238,17 +266,17 @@ func (l *Lexer) lexNextToken() *Token {
 
 	if c == ':' {
 		l.advance()
-		return l.newToken(ColonToken, "")
+		return newToken(COLON, "")
 	}
 
 	if c == '(' {
 		l.advance()
-		return l.newToken(LParenToken, "")
+		return newToken(LPAREN, "")
 	}
 
 	if c == ')' {
 		l.advance()
-		return l.newToken(RParenToken, "")
+		return newToken(RPAREN, "")
 	}
 
 	if isOperator(c) {
@@ -271,7 +299,7 @@ func (l *Lexer) lexNextToken() *Token {
 		return l.lexIdent()
 	}
 
-	return l.newToken(IllegalToken, string(l.advance()))
+	return newToken(ILLEGAL, string(l.advance()))
 }
 
 func (l *Lexer) NextToken() *Token {
@@ -282,7 +310,7 @@ func (l *Lexer) NextToken() *Token {
 lex:
 	tok := l.lexNextToken()
 
-	if (l.lastToken == nil && tok.Type == NewlineToken) || (l.lastToken != nil && l.lastToken.Type == NewlineToken && tok.Type == NewlineToken) {
+	if (l.lastToken == nil && tok.Type == NEWLINE) || (l.lastToken != nil && l.lastToken.Type == NEWLINE && tok.Type == NEWLINE) {
 		goto lex
 	}
 

@@ -46,7 +46,7 @@ func prepHandleDirective(scriptData []byte, directive *PreprocessorDirective) (r
 
 		break
 	default:
-		err = &SyntaxError{"unknown preprocessor directive"}
+		err = &SyntaxError{&UnknownPreprocessorDirectiveError{directive.Directive}}
 	}
 
 	return

@@ -1,0 +1,16 @@
+
+set A, 5
+eval A
+
+set A, 5
+set A, A * 2
+eval A
+
+set A, 5
+set A, ^A
+eval A
+
+--- EXPECT ---
+5
+10
+-6
