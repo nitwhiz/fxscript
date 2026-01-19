@@ -73,3 +73,27 @@ type UnexpectedBinaryOpError struct {
 func (e *UnexpectedBinaryOpError) Error() string {
 	return fmt.Sprintf("unexpected binary operation with left operand '%v' and right operand '%v'", e.Left, e.Right)
 }
+
+type MisingMacroArgumentError struct {
+	Name string
+}
+
+func (e *MisingMacroArgumentError) Error() string {
+	return fmt.Sprintf("missing macro argument '%s'", e.Name)
+}
+
+type UnknownMacroArgumentError struct {
+	Name string
+}
+
+func (e *UnknownMacroArgumentError) Error() string {
+	return fmt.Sprintf("unknown macro argument '%s'", e.Name)
+}
+
+type MissingMacroArgumentError struct {
+	Name string
+}
+
+func (e *MissingMacroArgumentError) Error() string {
+	return fmt.Sprintf("missing macro argument '%s'", e.Name)
+}

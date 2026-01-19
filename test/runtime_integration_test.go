@@ -135,6 +135,12 @@ func TestIntegration(t *testing.T) {
 					continue
 				}
 
+				firstChar := expectLine[0]
+
+				if firstChar == '#' {
+					continue
+				}
+
 				if len(e.results) <= rPtr {
 					t.Fatal("unexpected end of results")
 				}
@@ -143,9 +149,7 @@ func TestIntegration(t *testing.T) {
 
 				currentLineInFile := expectLineOffset + l + 1
 
-				switch expectLine[0] {
-				case '#':
-					continue
+				switch firstChar {
 				case '"':
 					require.IsType(t, "", value, "result expected to be a string at EXPECT line "+strconv.Itoa(currentLineInFile))
 

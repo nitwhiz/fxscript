@@ -14,10 +14,6 @@ type CommandNode struct {
 	Args []ExpressionNode
 }
 
-type LabelNode struct {
-	Name string
-}
-
 type AddressNode struct {
 	Address int
 }
@@ -61,7 +57,6 @@ func (n *StringNode) exprNode()     {}
 func (n *AddressNode) exprNode()    {}
 func (n *BinaryOpNode) exprNode()   {}
 func (n *UnaryOpNode) exprNode()    {}
-func (n *LabelNode) exprNode()      {}
 
 func (n *CommandNode) String() string {
 	args := make([]string, len(n.Args))
@@ -72,7 +67,7 @@ func (n *CommandNode) String() string {
 
 	argStr := strings.Join(args, ", ")
 
-	return fmt.Sprintf("$%02d %s", n.Type, argStr)
+	return fmt.Sprintf("CMD(%02d) %s", n.Type, argStr)
 }
 
 func (n *FloatNode) String() string {
@@ -84,11 +79,11 @@ func (n *IntegerNode) String() string {
 }
 
 func (n *IdentifierNode) String() string {
-	return fmt.Sprintf("i!%d", n.Identifier)
+	return fmt.Sprintf("IDENT(%d)", n.Identifier)
 }
 
 func (n *ConstantNode) String() string {
-	return fmt.Sprintf("[%s]", n.Name)
+	return fmt.Sprintf("CONST(%s)", n.Name)
 }
 
 func (n *StringNode) String() string {
@@ -96,7 +91,7 @@ func (n *StringNode) String() string {
 }
 
 func (n *AddressNode) String() string {
-	return fmt.Sprintf("@%d", n.Address)
+	return fmt.Sprintf("ADDRESS(%d)", n.Address)
 }
 
 func (n *BinaryOpNode) String() string {
@@ -105,8 +100,4 @@ func (n *BinaryOpNode) String() string {
 
 func (n *UnaryOpNode) String() string {
 	return fmt.Sprintf("%s%s", n.Operator, n.Expr)
-}
-
-func (n *LabelNode) String() string {
-	return fmt.Sprintf("@@%s", n.Name)
 }

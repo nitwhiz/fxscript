@@ -32,7 +32,6 @@ type Lexer struct {
 
 	lastToken *Token
 
-	line int
 	done bool
 }
 
@@ -40,16 +39,10 @@ func NewLexer(source []byte) *Lexer {
 	l := Lexer{
 		source:    source,
 		sourceLen: len(source),
+		pos:       0,
 	}
 
-	l.Rewind()
-
 	return &l
-}
-
-func (l *Lexer) Rewind() {
-	l.pos = 0
-	l.line = 1
 }
 
 func (l *Lexer) peekAhead(n int) byte {
@@ -244,39 +237,35 @@ func (l *Lexer) lexNextToken() *Token {
 
 	c := l.peek()
 
-	if c == 0 {
+	switch c {
+	case 0:
 		l.done = true
-		return newToken(EOF, "")
-	}
-
-	if c == ',' {
+		return eofToken
+	case ',':
 		l.advance()
 		return newToken(COMMA, "")
-	}
-
-	if c == '\n' {
+	case '\n':
 		l.advance()
 
 		tok := newToken(NEWLINE, "")
 
-		l.line += 1
-
 		return tok
-	}
-
-	if c == ':' {
+	case ':':
 		l.advance()
 		return newToken(COLON, "")
-	}
-
-	if c == '(' {
+	case '(':
 		l.advance()
 		return newToken(LPAREN, "")
-	}
-
-	if c == ')' {
+	case ')':
 		l.advance()
 		return newToken(RPAREN, "")
+	case '$':
+		l.advance()
+		return newToken(DOLLAR, "")
+	case '"':
+		return l.lexString()
+	case '#':
+		return l.skipComment()
 	}
 
 	if isOperator(c) {
@@ -287,14 +276,6 @@ func (l *Lexer) lexNextToken() *Token {
 		return l.lexNumber()
 	}
 
-	if c == '"' {
-		return l.lexString()
-	}
-
-	if c == '#' {
-		return l.skipComment()
-	}
-
 	if isAlpha(c) {
 		return l.lexIdent()
 	}
@@ -302,9 +283,9 @@ func (l *Lexer) lexNextToken() *Token {
 	return newToken(ILLEGAL, string(l.advance()))
 }
 
-func (l *Lexer) NextToken() *Token {
+func (l *Lexer) NextToken() (*Token, error) {
 	if l.done {
-		return l.lastToken
+		return l.lastToken, nil
 	}
 
 lex:
@@ -316,16 +297,14 @@ lex:
 
 	l.lastToken = tok
 
-	return tok
+	return tok, nil
 }
 
 func (l *Lexer) Lex() []*Token {
-	l.Rewind()
-
 	var tokens []*Token
 
 	for {
-		tok := l.NextToken()
+		tok, _ := l.NextToken()
 
 		tokens = append(tokens, tok)
 

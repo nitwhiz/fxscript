@@ -14,7 +14,7 @@ const (
 	cmdMyCmd = UserCommandOffset + iota
 )
 
-func parse(script string) (commands []*CommandNode, constants map[string]ExpressionNode, labels map[string]int, macros map[string]*Script, err error) {
+func parse(script string) (commands []*CommandNode, constants map[string]ExpressionNode, labels map[string]int, macros map[string]*Macro, err error) {
 	l := NewLexer([]byte(script))
 	p := NewParser(l, &ParserConfig{
 		CommandTypes: CommandTypeTable{
@@ -283,13 +283,13 @@ func TestParser_Macros(t *testing.T) {
 			myCmd 1
 		endmacro
 
-		macro m2
+		macro m2 $value
 			m1
-			myCmd 2
+			myCmd $value
 		endmacro
 
 		m1
-		m2
+		m2 2
 		myCmd 3
 	`
 
@@ -307,17 +307,6 @@ func TestParser_Macros(t *testing.T) {
 	require.Equal(t, expectedCommands, commands)
 
 	require.Len(t, macros, 2)
-
-	m1, ok := macros["m1"]
-
-	require.True(t, ok)
-
-	m2, ok := macros["m2"]
-
-	require.True(t, ok)
-
-	require.Equal(t, m1.Commands(), []*CommandNode{{cmdMyCmd, []ExpressionNode{&IntegerNode{1}}}})
-	require.Equal(t, m2.Commands(), []*CommandNode{{cmdMyCmd, []ExpressionNode{&IntegerNode{1}}}, {cmdMyCmd, []ExpressionNode{&IntegerNode{2}}}})
 
 	require.Empty(t, constants)
 	require.Empty(t, labels)

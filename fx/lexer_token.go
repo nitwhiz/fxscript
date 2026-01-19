@@ -50,6 +50,8 @@ const (
 
 	AND
 	OR
+
+	DOLLAR
 )
 
 const (
@@ -123,6 +125,8 @@ func tokName(tokType TokenType) string {
 		return "AND"
 	case OR:
 		return "OR"
+	case DOLLAR:
+		return "DOLLAR"
 	default:
 		return "MISSINGNAME(" + strconv.Itoa(int(tokType)) + ")"
 	}

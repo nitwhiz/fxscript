@@ -1,0 +1,11 @@
+
+macro add $acc, $add
+  set $acc, $acc + $add
+endmacro
+
+set A, 5
+add A, 1
+eval A
+
+--- EXPECT ---
+6

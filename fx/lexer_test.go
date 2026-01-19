@@ -285,7 +285,9 @@ func TestLexer_EOF(t *testing.T) {
 
 	require.Equal(t, []*Token{{EOF, ""}}, tokens)
 
-	tok := l.NextToken()
+	tok, err := l.NextToken()
+
+	require.NoError(t, err)
 
 	require.Equal(t, tokens[0], tok, "expected same EOF token to be returned")
 }

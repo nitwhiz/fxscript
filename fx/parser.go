@@ -3,9 +3,13 @@ package fx
 import (
 	"strconv"
 	"strings"
-
-	"github.com/nitwhiz/ring-buffer"
 )
+
+var eofToken = newToken(EOF, "")
+
+type TokenSource interface {
+	NextToken() (*Token, error)
+}
 
 const (
 	tokenPrefetch = 16
@@ -14,11 +18,11 @@ const (
 type ParserConfig struct {
 	CommandTypes CommandTypeTable
 	Identifiers  IdentifierTable
+	BufSize      int
 }
 
 type Parser struct {
-	l   *Lexer
-	buf *ring.Buffer[*Token]
+	src *TokenIterator
 
 	commandTypes CommandTypeTable
 	identifiers  IdentifierTable
@@ -26,10 +30,15 @@ type Parser struct {
 	done bool
 }
 
-func NewParser(l *Lexer, c *ParserConfig) *Parser {
+func NewParser(src TokenSource, c *ParserConfig) *Parser {
+	bufSize := c.BufSize
+
+	if bufSize == 0 {
+		bufSize = 32
+	}
+
 	p := Parser{
-		l:   l,
-		buf: ring.NewBuffer[*Token](1024),
+		src: NewTokenIterator(src, bufSize),
 
 		commandTypes: c.CommandTypes,
 		identifiers:  c.Identifiers,
@@ -38,41 +47,8 @@ func NewParser(l *Lexer, c *ParserConfig) *Parser {
 	return &p
 }
 
-func (p *Parser) fillBuffer() (err error) {
-	if p.done {
-		return
-	}
-
-	prefetch := tokenPrefetch - p.buf.Len()
-
-	if prefetch <= 0 {
-		return
-	}
-
-	for range prefetch {
-		tok := p.l.NextToken()
-
-		if err = p.buf.WriteOne(tok); err != nil {
-			return err
-		}
-
-		if tok.Type == EOF {
-			p.done = true
-			break
-		}
-	}
-
-	return nil
-}
-
-func (p *Parser) peekAhead(n int) (tok *Token, err error) {
-	if err = p.fillBuffer(); err != nil {
-		return
-	}
-
-	tok, err = p.buf.Peek(n)
-
-	return
+func (p *Parser) peekAhead(n int) (*Token, error) {
+	return p.src.Peek(n)
 }
 
 func (p *Parser) peek() (*Token, error) {
@@ -80,11 +56,25 @@ func (p *Parser) peek() (*Token, error) {
 }
 
 func (p *Parser) advance() (tok *Token, err error) {
-	if err = p.fillBuffer(); err != nil {
-		return
-	}
+	return p.src.NextToken()
+}
 
-	tok, err = p.buf.ReadOne()
+func (p *Parser) consumeUntil(end TokenType) (tokens []*Token, err error) {
+	var tok *Token
+
+	for {
+		tok, err = p.advance()
+
+		if err != nil {
+			return
+		}
+
+		if tok.Type == end || tok.Type == EOF {
+			break
+		}
+
+		tokens = append(tokens, tok)
+	}
 
 	return
 }
@@ -100,24 +90,37 @@ func (p *Parser) parseMacro(script *Script) (err error) {
 		return
 	}
 
-	subscript := newScript(script)
+	argTokens, err := p.consumeUntil(NEWLINE)
 
-	ok := true
+	if err != nil {
+		return
+	}
 
-	for ok {
-		ok, err = p.parseNextNode(subscript, ENDMACRO)
+	args := make([]string, 0)
 
-		if err != nil {
-			return
+	var argName string
+	var ok bool
+
+	for i := 0; i < len(argTokens); i++ {
+		argName, ok, i = macroArgToken(argTokens, i)
+
+		if ok {
+			args = append(args, argName)
 		}
 	}
 
-	script.macros[ident.Value] = subscript
+	macroTokens, err := p.consumeUntil(ENDMACRO)
+
+	if err != nil {
+		return
+	}
+
+	script.macros[ident.Value] = newMacro(args, macroTokens)
 
 	return
 }
 
-func (p *Parser) getDefinedIdent(script *Script, tok *Token) ExpressionNode {
+func (p *Parser) resolveIdent(script *Script, tok *Token) ExpressionNode {
 	if expr, ok := script.constants[tok.Value]; ok {
 		return expr
 	}
@@ -126,7 +129,11 @@ func (p *Parser) getDefinedIdent(script *Script, tok *Token) ExpressionNode {
 		return &IdentifierNode{identifier}
 	}
 
-	return &LabelNode{tok.Value}
+	addressNode := &AddressNode{0}
+
+	script.symbols[tok.Value] = addressNode
+
+	return addressNode
 }
 
 func (p *Parser) parsePrimary(script *Script) (expr ExpressionNode, err error) {
@@ -197,7 +204,7 @@ func (p *Parser) parsePrimary(script *Script) (expr ExpressionNode, err error) {
 		expr = &StringNode{tok.Value}
 		return
 	case IDENT:
-		expr = p.getDefinedIdent(script, tok)
+		expr = p.resolveIdent(script, tok)
 		return
 	default:
 		err = &SyntaxError{&UnexpectedTokenError{[]TokenType{NEWLINE, ADD, SUB, MUL, EXCL, INV, AND, LPAREN, NUMBER, STRING, IDENT}, tok}}
@@ -308,6 +315,9 @@ func (p *Parser) parseCommand(script *Script) (err error) {
 
 	var tok *Token
 
+	var macro *Macro
+	var macroArgs [][]*Token
+
 	for {
 		tok, err = p.peek()
 
@@ -316,16 +326,26 @@ func (p *Parser) parseCommand(script *Script) (err error) {
 		}
 
 		if tok.Type == NEWLINE || tok.Type == EOF {
+			_, err = p.advance()
+
 			if cmd.Type != CmdNone {
 				script.commands = append(script.commands, &cmd)
-			}
+			} else if macro != nil {
+				var tokSrc TokenSource
 
-			_, err = p.advance()
+				tokSrc, err = macro.Body(macroArgs)
+
+				if err != nil {
+					return
+				}
+
+				p.src.Insert(tokSrc)
+			}
 
 			return
 		}
 
-		if cmd.Type == CmdNone {
+		if cmd.Type == CmdNone && macro == nil {
 			if _, err = p.advance(); err != nil {
 				return
 			}
@@ -336,7 +356,7 @@ func (p *Parser) parseCommand(script *Script) (err error) {
 				m, ok := script.macros[tok.Value]
 
 				if ok {
-					script.commands = append(script.commands, m.commands...)
+					macro = m
 				} else {
 					err = &SyntaxError{&UnknownCommandError{tok.Value}}
 					return
@@ -345,33 +365,70 @@ func (p *Parser) parseCommand(script *Script) (err error) {
 				cmd.Type = cmdType
 			}
 		} else {
-			var argNode ExpressionNode
+			if macro != nil {
+				var argTokens []*Token
 
-			argNode, err = p.parseExpression(script)
+				for {
+					ok := true
 
-			if err != nil {
-				return
-			}
+					if tok.Type == NEWLINE || tok.Type == EOF {
+						ok = false
+					}
 
-			tok, err = p.peek()
+					if tok.Type == COMMA || !ok {
+						if len(argTokens) > 0 {
+							macroArgs = append(macroArgs, argTokens)
+							argTokens = []*Token{}
+						}
+					} else if ok {
+						argTokens = append(argTokens, tok)
+					}
 
-			if err != nil {
-				return
-			}
+					if !ok {
+						break
+					}
 
-			if tok.Type == COMMA {
-				_, err = p.advance()
+					_, err = p.advance()
+
+					if err != nil {
+						return
+					}
+
+					tok, err = p.peek()
+
+					if err != nil {
+						return
+					}
+				}
+			} else {
+				var argNode ExpressionNode
+
+				argNode, err = p.parseExpression(script)
 
 				if err != nil {
 					return
 				}
-			}
 
-			if argNode == nil {
-				return
-			}
+				tok, err = p.peek()
 
-			cmd.Args = append(cmd.Args, argNode)
+				if err != nil {
+					return
+				}
+
+				if tok.Type == COMMA {
+					_, err = p.advance()
+
+					if err != nil {
+						return
+					}
+				}
+
+				if argNode == nil {
+					return
+				}
+
+				cmd.Args = append(cmd.Args, argNode)
+			}
 		}
 	}
 }
@@ -448,56 +505,22 @@ func (p *Parser) parseNextNode(script *Script, end TokenType) (ok bool, err erro
 	return
 }
 
-func replaceLabelNodesInExpression(script *Script, expr ExpressionNode) (resultExpr ExpressionNode, err error) {
-	resultExpr = expr
-
-	switch n := expr.(type) {
-	case *BinaryOpNode:
-		n.Left, err = replaceLabelNodesInExpression(script, n.Left)
-
-		if err != nil {
-			return
-		}
-
-		n.Right, err = replaceLabelNodesInExpression(script, n.Right)
-
-		if err != nil {
-			return
-		}
-
-		break
-	case *LabelNode:
-		pc, ok := script.labels[n.Name]
+func augmentAddressNodes(script *Script) (err error) {
+	for label, addr := range script.symbols {
+		pc, ok := script.labels[label]
 
 		if !ok {
-			err = &SyntaxError{&UnknownLabelError{n.Name}}
-			return
+			return &SyntaxError{&UnknownLabelError{label}}
 		}
 
-		resultExpr = &AddressNode{pc}
-
-		break
-	}
-
-	return
-}
-
-func replaceLabelNodes(script *Script) (err error) {
-	for _, c := range script.commands {
-		for idx := range c.Args {
-			c.Args[idx], err = replaceLabelNodesInExpression(script, c.Args[idx])
-
-			if err != nil {
-				return
-			}
-		}
+		addr.Address = pc
 	}
 
 	return
 }
 
 func (p *Parser) Parse() (script *Script, err error) {
-	script = newScript(nil)
+	script = newScript()
 
 	ok := true
 
@@ -509,7 +532,7 @@ func (p *Parser) Parse() (script *Script, err error) {
 		}
 	}
 
-	err = replaceLabelNodes(script)
+	err = augmentAddressNodes(script)
 
 	return
 }

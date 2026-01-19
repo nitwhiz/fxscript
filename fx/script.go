@@ -3,28 +3,20 @@ package fx
 type Script struct {
 	commands []*CommandNode
 
-	labels map[string]int
-
+	labels    map[string]int
+	symbols   map[string]*AddressNode
 	constants map[string]ExpressionNode
-	macros    map[string]*Script
+	macros    map[string]*Macro
 }
 
-func newScript(parentScript *Script) *Script {
-	s := Script{
-		commands: make([]*CommandNode, 0),
+func newScript() *Script {
+	return &Script{
+		commands:  make([]*CommandNode, 0),
+		labels:    make(map[string]int),
+		symbols:   make(map[string]*AddressNode),
+		constants: make(map[string]ExpressionNode),
+		macros:    make(map[string]*Macro),
 	}
-
-	if parentScript != nil {
-		s.labels = parentScript.labels
-		s.macros = parentScript.macros
-		s.constants = parentScript.constants
-	} else {
-		s.labels = make(map[string]int)
-		s.macros = make(map[string]*Script)
-		s.constants = make(map[string]ExpressionNode)
-	}
-
-	return &s
 }
 
 func (s *Script) String() (str string) {
