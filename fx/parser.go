@@ -131,7 +131,7 @@ func (p *Parser) resolveIdent(script *Script, tok *Token) ExpressionNode {
 
 	addressNode := &AddressNode{0}
 
-	script.symbols[tok.Value] = addressNode
+	script.addSymbol(tok.Value, addressNode)
 
 	return addressNode
 }
@@ -506,14 +506,16 @@ func (p *Parser) parseNextNode(script *Script, end TokenType) (ok bool, err erro
 }
 
 func augmentAddressNodes(script *Script) (err error) {
-	for label, addr := range script.symbols {
+	for label, addrNodes := range script.symbols {
 		pc, ok := script.labels[label]
 
 		if !ok {
 			return &SyntaxError{&UnknownLabelError{label}}
 		}
 
-		addr.Address = pc
+		for _, addr := range addrNodes {
+			addr.Address = pc
+		}
 	}
 
 	return

@@ -14,14 +14,22 @@ type Environment interface {
 }
 
 type Runtime struct {
-	script   *fx.Script
-	handlers []CommandHandler
+	script    *fx.Script
+	handlers  []CommandHandler
+	stackSize int
 }
 
 func NewRuntime(s *fx.Script, cfg *RuntimeConfig) *Runtime {
+	stackSize := cfg.StackSize
+
+	if stackSize == 0 {
+		stackSize = 16
+	}
+
 	r := Runtime{
-		script:   s,
-		handlers: make([]CommandHandler, 0, fx.UserCommandOffset),
+		script:    s,
+		handlers:  make([]CommandHandler, 0, fx.UserCommandOffset),
+		stackSize: stackSize,
 	}
 
 	r.RegisterCommands(BaseCommands)
@@ -35,6 +43,7 @@ func (r *Runtime) NewFrame(pc int, env Environment) *RuntimeFrame {
 		Environment: env,
 		Runtime:     r,
 		pc:          pc,
+		stack:       make([]int, r.stackSize),
 	}
 }
 

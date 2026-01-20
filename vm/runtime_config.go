@@ -7,6 +7,7 @@ import (
 type RuntimeConfig struct {
 	UserCommands []*Command
 	Identifiers  fx.IdentifierTable
+	StackSize    int
 }
 
 func (r *RuntimeConfig) ParserConfig() *fx.ParserConfig {

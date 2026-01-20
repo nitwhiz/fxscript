@@ -40,7 +40,8 @@ func handleCall(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, j
 			return f.script.EndOfScript(), true
 		}
 
-		f.pushPC()
+		f.pushStack(f.pc + 1)
+
 		return args.Addr, true
 	})
 }
@@ -49,8 +50,7 @@ func handleRet(f *RuntimeFrame, _ []fx.ExpressionNode) (jumpTarget int, jump boo
 	var ok bool
 
 	jump = true
-
-	jumpTarget, ok = f.popPC()
+	jumpTarget, ok = f.popStack()
 
 	if !ok {
 		jumpTarget = f.script.EndOfScript()

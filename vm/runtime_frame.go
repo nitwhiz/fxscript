@@ -13,15 +13,15 @@ type RuntimeFrame struct {
 	pc int
 
 	sp    int
-	stack [16]int
+	stack []int
 }
 
-func (f *RuntimeFrame) pushPC() {
-	f.stack[f.sp] = f.pc
+func (f *RuntimeFrame) pushStack(v int) {
+	f.stack[f.sp] = v
 	f.sp++
 }
 
-func (f *RuntimeFrame) popPC() (int, bool) {
+func (f *RuntimeFrame) popStack() (int, bool) {
 	if f.sp == 0 {
 		return 0, false
 	}
