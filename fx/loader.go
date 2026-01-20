@@ -17,9 +17,7 @@ func loadScriptSource(fs fs.FS, entryFileName string) (scriptData []byte, err er
 
 	defer f.Close()
 
-	scriptData, err = io.ReadAll(f)
-
-	if err != nil {
+	if scriptData, err = io.ReadAll(f); err != nil {
 		return
 	}
 
@@ -58,9 +56,7 @@ func loadScriptSource(fs fs.FS, entryFileName string) (scriptData []byte, err er
 				FS:        fs,
 			}
 
-			scriptData, next, size, err = prepHandleDirective(scriptData, &directive)
-
-			if err != nil {
+			if scriptData, next, size, err = prepHandleDirective(scriptData, &directive); err != nil {
 				return
 			}
 
@@ -82,9 +78,9 @@ func LoadScript(source []byte, cfg *ParserConfig) (script *Script, err error) {
 }
 
 func LoadFS(fs fs.FS, entryFileName string, cfg *ParserConfig) (script *Script, err error) {
-	source, err := loadScriptSource(fs, entryFileName)
+	var source []byte
 
-	if err != nil {
+	if source, err = loadScriptSource(fs, entryFileName); err != nil {
 		return
 	}
 

@@ -4,10 +4,11 @@ A simple mission script language parser and runtime for Go.
 
 ## Features
 
-- Labels and control flow
-- Pointers and Addresses
+- Labels
+- Macros
+- Pointers
 - Expressions
-- Preprocessor directives
+- Preprocessor
 
 ## Installation
 
@@ -18,6 +19,7 @@ go get -u github.com/nitwhiz/fxscript
 ## Basic Usage
 
 To use FXScript, you need to:
+
 1. Define your runtime environment by implementing the `vm.Environment` interface.
 2. Configure the parser with your custom commands and variables.
 3. Load and run your script.
@@ -147,6 +149,22 @@ In this example, `my_macro 10, 20` will be expanded to `set A, (10 + 20)`.
 
 Macro arguments are literally replaced in the macro body.
 
+#### Macro Local Labels
+
+Labels starting with a `%` (e.g., `%loop:`) are local to the macro they are defined in. When the macro is expanded, these labels are prefixed with a unique identifier to prevent name collisions if the macro is used multiple times.
+
+```
+macro my_loop $count
+    set A, 0
+    %loop:
+        set A, (A + 1)
+        jumpIf (A < $count), %loop
+endmacro
+
+my_loop 10
+my_loop 20
+```
+
 ### Built-in Commands
 
 - `nop`: No operation.
@@ -196,8 +214,8 @@ The `Handler` function for a custom command has the following signature:
 func(f *vm.RuntimeFrame, args []fx.ExpressionNode) (jumpTarget int, jump bool)
 ```
 
-- **`jumpTarget`**: The new Program Counter (PC) value if a jump should occur.
-- **`jump`**: If `true`, the runtime will set the PC to `jumpTarget`. If `false`, the runtime continues with the next command.
+- `jumpTarget`: The new Program Counter (PC) value if a jump should occur.
+- `jump`: If `true`, the runtime will set the PC to `jumpTarget`. If `false`, the runtime continues with the next command.
 
 #### Using `vm.WithArgs`
 
@@ -229,10 +247,10 @@ r.RegisterCommands([]*vm.Command{
 
 The `vm.WithArgs` helper supports unmarshalling into a struct. The behavior depends on the field type:
 
-- **`fx.Identifier`**: 
+- `fx.Identifier`: 
     - If a plain identifier (like `health`) or `&health` is passed, it unmarshals to its **address**.
     - If an expression is passed (like `*health`), it is evaluated and cast to `fx.Identifier`.
-- **`int`, `float64`, `string`**: Evaluates the expression and casts the result to the field type.
+- `int`, `float64`, `string`: Evaluates the expression and casts the result to the field type.
 
 #### Example: The `set` command
 

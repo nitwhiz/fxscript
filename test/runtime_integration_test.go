@@ -60,12 +60,10 @@ func (env *TestEnv) HandleError(err error) {
 func (env *TestEnv) handleEval(f *vm.RuntimeFrame, args []fx.ExpressionNode) (jumpTarget int, jump bool) {
 	values := make([]any, len(args))
 
+	var err error
+
 	for i, arg := range args {
-		var err error
-
-		values[i], err = f.Eval(arg)
-
-		if err != nil {
+		if values[i], err = f.Eval(arg); err != nil {
 			env.HandleError(err)
 		}
 	}
@@ -75,7 +73,7 @@ func (env *TestEnv) handleEval(f *vm.RuntimeFrame, args []fx.ExpressionNode) (ju
 	return
 }
 
-func (env *TestEnv) handleBreakpoint(f *vm.RuntimeFrame, args []fx.ExpressionNode) (jumpTarget int, jump bool) {
+func (env *TestEnv) handleBreak(f *vm.RuntimeFrame, args []fx.ExpressionNode) (jumpTarget int, jump bool) {
 	runtime.Breakpoint()
 	return
 }
@@ -106,7 +104,7 @@ func TestIntegration(t *testing.T) {
 			rtCfg := &vm.RuntimeConfig{
 				UserCommands: []*vm.Command{
 					{"eval", cmdEval, e.handleEval},
-					{"breakpoint", cmdBreakpoint, e.handleBreakpoint},
+					{"break", cmdBreakpoint, e.handleBreak},
 				},
 				Identifiers: identifiers,
 			}
@@ -151,6 +149,8 @@ func TestIntegration(t *testing.T) {
 
 				switch firstChar {
 				case '"':
+					t.Log(value)
+
 					require.IsType(t, "", value, "result expected to be a string at EXPECT line "+strconv.Itoa(currentLineInFile))
 
 					expectedString := string(expectLine[1 : len(expectLine)-1])
@@ -159,6 +159,8 @@ func TestIntegration(t *testing.T) {
 					break
 				default:
 					if bytes.Contains(expectLine, []byte(".")) {
+						t.Log(value)
+
 						valueKind := reflect.ValueOf(value).Kind()
 
 						if valueKind != reflect.Float64 {
@@ -170,6 +172,8 @@ func TestIntegration(t *testing.T) {
 						require.NoError(t, err, "unable to parse float64 at EXPECT line "+strconv.Itoa(currentLineInFile))
 						require.EqualValues(t, expectedFloat, value, "value mismatch at EXPECT line "+strconv.Itoa(currentLineInFile))
 					} else {
+						t.Log(value)
+
 						valueKind := reflect.ValueOf(value).Kind()
 
 						if valueKind != reflect.Int {

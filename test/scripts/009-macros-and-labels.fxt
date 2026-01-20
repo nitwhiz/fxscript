@@ -1,0 +1,42 @@
+
+macro m1 $change
+  eval $change
+  set A, 1
+  %loop:
+    set A, A + $change
+    eval A
+    jumpIf A <= 10, %loop
+    eval "A is now more than 10"
+    goto %end
+  %end:
+    eval "end of m1"
+endmacro
+
+m1 4
+eval A
+
+m1 7
+eval A
+
+goto end
+
+skipMe:
+  set A, -21
+end:
+  eval A
+
+--- EXPECT ---
+4
+5
+9
+13
+"A is now more than 10"
+"end of m1"
+13
+7
+8
+15
+"A is now more than 10"
+"end of m1"
+15
+15

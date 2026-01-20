@@ -38,7 +38,7 @@ func NewParser(src TokenSource, c *ParserConfig) *Parser {
 	}
 
 	p := Parser{
-		src: NewTokenIterator(src, bufSize),
+		src: NewTokenIterator("main", src, bufSize),
 
 		commandTypes: c.CommandTypes,
 		identifiers:  c.Identifiers,
@@ -63,9 +63,7 @@ func (p *Parser) consumeUntil(end TokenType) (tokens []*Token, err error) {
 	var tok *Token
 
 	for {
-		tok, err = p.advance()
-
-		if err != nil {
+		if tok, err = p.advance(); err != nil {
 			return
 		}
 
@@ -84,15 +82,15 @@ func (p *Parser) parseMacro(script *Script) (err error) {
 		return
 	}
 
-	ident, err := p.advance()
+	var ident *Token
 
-	if err != nil {
+	if ident, err = p.advance(); err != nil {
 		return
 	}
 
-	argTokens, err := p.consumeUntil(NEWLINE)
+	var argTokens []*Token
 
-	if err != nil {
+	if argTokens, err = p.consumeUntil(NEWLINE); err != nil {
 		return
 	}
 
@@ -109,37 +107,121 @@ func (p *Parser) parseMacro(script *Script) (err error) {
 		}
 	}
 
-	macroTokens, err := p.consumeUntil(ENDMACRO)
+	var macroTokens []*Token
 
-	if err != nil {
+	if macroTokens, err = p.consumeUntil(ENDMACRO); err != nil {
 		return
 	}
 
-	script.macros[ident.Value] = newMacro(args, macroTokens)
+	script.macros[ident.Value] = newMacro(ident.Value, args, macroTokens)
 
 	return
 }
 
-func (p *Parser) resolveIdent(script *Script, tok *Token) ExpressionNode {
-	if expr, ok := script.constants[tok.Value]; ok {
-		return expr
-	}
+func (p *Parser) parseLabel(script *Script, tok *Token) (expr ExpressionNode, err error) {
+	var labelName string
 
-	if identifier, ok := p.getIdentifier(tok.Value); ok {
-		return &IdentifierNode{identifier}
+	if tok.Type == PERCENT {
+		if tok, err = p.advance(); err != nil {
+			return
+		}
+
+		if tok.Type == IDENT {
+			labelName = p.src.Prefixed(tok.Value)
+		}
+	} else {
+		labelName = tok.Value
 	}
 
 	addressNode := &AddressNode{0}
 
-	script.addSymbol(tok.Value, addressNode)
+	script.addSymbol(labelName, addressNode)
 
-	return addressNode
+	expr = addressNode
+
+	return
+}
+
+func (p *Parser) resolveIdent(script *Script, tok *Token) (expr ExpressionNode, err error) {
+	var ok bool
+
+	if expr, ok = script.constants[tok.Value]; ok {
+		return
+	}
+
+	var identifier Identifier
+
+	if identifier, ok = p.getIdentifier(tok.Value); ok {
+		expr = &IdentifierNode{identifier}
+		return
+	}
+
+	return p.parseLabel(script, tok)
+}
+
+func (p *Parser) parseUnary(script *Script, tok *Token) (expr *UnaryOpNode, err error) {
+	var operand ExpressionNode
+
+	if operand, err = p.parsePrimary(script); err != nil {
+		return
+	}
+
+	expr = &UnaryOpNode{tok, operand}
+	return
+}
+
+func (p *Parser) parseExpressionInParens(script *Script) (expr ExpressionNode, err error) {
+	if expr, err = p.parseExpression(script); err != nil {
+		return
+	}
+
+	var tok *Token
+
+	if tok, err = p.advance(); err != nil {
+		return
+	}
+
+	if tok.Type != RPAREN {
+		err = &SyntaxError{&UnexpectedTokenError{[]TokenType{RPAREN}, tok}}
+		return
+	}
+
+	return
+}
+
+func (p *Parser) parseNumber(tok *Token) (expr ExpressionNode, err error) {
+	if strings.Contains(tok.Value, ".") {
+		var val float64
+
+		if val, err = strconv.ParseFloat(tok.Value, 64); err != nil {
+			return
+		}
+
+		expr = &FloatNode{val}
+
+		return
+	}
+
+	var val int64
+
+	if val, err = strconv.ParseInt(tok.Value, 10, 32); err != nil {
+		return
+	}
+
+	expr = &IntegerNode{int(val)}
+
+	return
+}
+
+func (p *Parser) parseString(tok *Token) (expr ExpressionNode, err error) {
+	expr = &StringNode{tok.Value}
+	return
 }
 
 func (p *Parser) parsePrimary(script *Script) (expr ExpressionNode, err error) {
-	tok, err := p.advance()
+	var tok *Token
 
-	if err != nil {
+	if tok, err = p.advance(); err != nil {
 		return
 	}
 
@@ -147,65 +229,17 @@ func (p *Parser) parsePrimary(script *Script) (expr ExpressionNode, err error) {
 	case NEWLINE:
 		return
 	case ADD, SUB, MUL, EXCL, INV, AND:
-		var operand ExpressionNode
-
-		operand, err = p.parsePrimary(script)
-
-		if err != nil {
-			return
-		}
-
-		expr = &UnaryOpNode{tok, operand}
-		return
+		return p.parseUnary(script, tok)
 	case LPAREN:
-		expr, err = p.parseExpression(script)
-
-		if err != nil {
-			return
-		}
-
-		tok, err = p.advance()
-
-		if err != nil {
-			return
-		}
-
-		if tok.Type != RPAREN {
-			err = &SyntaxError{&UnexpectedTokenError{[]TokenType{RPAREN}, tok}}
-			return
-		}
-
-		return
+		return p.parseExpressionInParens(script)
 	case NUMBER:
-		if strings.Contains(tok.Value, ".") {
-			var val float64
-
-			val, err = strconv.ParseFloat(tok.Value, 64)
-
-			if err != nil {
-				return
-			}
-
-			expr = &FloatNode{val}
-			return
-		}
-
-		var val int64
-
-		val, err = strconv.ParseInt(tok.Value, 10, 32)
-
-		if err != nil {
-			return
-		}
-
-		expr = &IntegerNode{int(val)}
-		return
+		return p.parseNumber(tok)
 	case STRING:
-		expr = &StringNode{tok.Value}
-		return
+		return p.parseString(tok)
+	case PERCENT:
+		return p.parseLabel(script, tok)
 	case IDENT:
-		expr = p.resolveIdent(script, tok)
-		return
+		return p.resolveIdent(script, tok)
 	default:
 		err = &SyntaxError{&UnexpectedTokenError{[]TokenType{NEWLINE, ADD, SUB, MUL, EXCL, INV, AND, LPAREN, NUMBER, STRING, IDENT}, tok}}
 		return
@@ -217,7 +251,7 @@ func (p *Parser) parseExpression(script *Script) (ExpressionNode, error) {
 }
 
 func (p *Parser) parseMultiplicative(script *Script) (expr ExpressionNode, err error) {
-	return p.parseBinary(script, p.parsePrimary, MUL, DIV, MOD)
+	return p.parseBinary(script, p.parsePrimary, MUL, DIV, PERCENT)
 }
 
 func (p *Parser) parseAdditive(script *Script) (expr ExpressionNode, err error) {
@@ -237,18 +271,14 @@ func (p *Parser) parseShift(script *Script) (expr ExpressionNode, err error) {
 }
 
 func (p *Parser) parseBinary(script *Script, next func(script *Script) (ExpressionNode, error), ops ...TokenType) (expr ExpressionNode, err error) {
-	expr, err = next(script)
-
-	if err != nil {
+	if expr, err = next(script); err != nil {
 		return
 	}
 
 	var current *Token
 
 	for {
-		current, err = p.peek()
-
-		if err != nil {
+		if current, err = p.peek(); err != nil {
 			return
 		}
 
@@ -258,17 +288,13 @@ func (p *Parser) parseBinary(script *Script, next func(script *Script) (Expressi
 
 		op := current
 
-		_, err = p.advance()
-
-		if err != nil {
+		if _, err = p.advance(); err != nil {
 			return
 		}
 
 		var right ExpressionNode
 
-		right, err = next(script)
-
-		if err != nil {
+		if right, err = next(script); err != nil {
 			return
 		}
 
@@ -297,9 +323,9 @@ func (p *Parser) parseConst(script *Script) (err error) {
 		return
 	}
 
-	nameIdent, err := p.advance()
+	var nameIdent *Token
 
-	if err != nil {
+	if nameIdent, err = p.advance(); err != nil {
 		return
 	}
 
@@ -319,9 +345,7 @@ func (p *Parser) parseCommand(script *Script) (err error) {
 	var macroArgs [][]*Token
 
 	for {
-		tok, err = p.peek()
-
-		if err != nil {
+		if tok, err = p.peek(); err != nil {
 			return
 		}
 
@@ -333,13 +357,11 @@ func (p *Parser) parseCommand(script *Script) (err error) {
 			} else if macro != nil {
 				var tokSrc TokenSource
 
-				tokSrc, err = macro.Body(macroArgs)
-
-				if err != nil {
+				if tokSrc, err = macro.Body(macroArgs); err != nil {
 					return
 				}
 
-				p.src.Insert(tokSrc)
+				p.src.Insert(macro.name, tokSrc)
 			}
 
 			return
@@ -388,37 +410,27 @@ func (p *Parser) parseCommand(script *Script) (err error) {
 						break
 					}
 
-					_, err = p.advance()
-
-					if err != nil {
+					if _, err = p.advance(); err != nil {
 						return
 					}
 
-					tok, err = p.peek()
-
-					if err != nil {
+					if tok, err = p.peek(); err != nil {
 						return
 					}
 				}
 			} else {
 				var argNode ExpressionNode
 
-				argNode, err = p.parseExpression(script)
-
-				if err != nil {
+				if argNode, err = p.parseExpression(script); err != nil {
 					return
 				}
 
-				tok, err = p.peek()
-
-				if err != nil {
-					return
+				if tok, err = p.peek(); err != nil {
+					return err
 				}
 
 				if tok.Type == COMMA {
-					_, err = p.advance()
-
-					if err != nil {
+					if _, err = p.advance(); err != nil {
 						return
 					}
 				}
@@ -433,10 +445,10 @@ func (p *Parser) parseCommand(script *Script) (err error) {
 	}
 }
 
-func (p *Parser) parseLabelDeclaration(script *Script) (err error) {
-	nameIdent, err := p.advance()
+func (p *Parser) parseLabelDeclaration(script *Script, prefixed bool) (err error) {
+	var nameIdent *Token
 
-	if err != nil {
+	if nameIdent, err = p.advance(); err != nil {
 		return
 	}
 
@@ -444,20 +456,43 @@ func (p *Parser) parseLabelDeclaration(script *Script) (err error) {
 		return
 	}
 
-	script.labels[nameIdent.Value] = script.PC()
+	var name string
+
+	if prefixed {
+		name = p.src.Prefixed(nameIdent.Value)
+	} else {
+		name = nameIdent.Value
+	}
+
+	script.labels[name] = script.PC()
 
 	return
 }
 
-func (p *Parser) parseIdent(script *Script) (err error) {
-	tok, err := p.peekAhead(1)
+func (p *Parser) parseIdent(script *Script, tok *Token) (err error) {
+	var tok1 *Token
 
-	if err != nil {
+	if tok1, err = p.peekAhead(1); err != nil {
 		return
 	}
 
-	if tok.Type == COLON {
-		err = p.parseLabelDeclaration(script)
+	if tok.Type == PERCENT && tok1.Type == IDENT {
+		var tok2 *Token
+
+		if tok2, err = p.peekAhead(2); err != nil {
+			return
+		}
+
+		if tok2.Type == COLON {
+			if _, err = p.advance(); err != nil {
+				return
+			}
+
+			err = p.parseLabelDeclaration(script, true)
+			return
+		}
+	} else if tok.Type == IDENT && tok1.Type == COLON {
+		err = p.parseLabelDeclaration(script, false)
 		return
 	}
 
@@ -467,9 +502,9 @@ func (p *Parser) parseIdent(script *Script) (err error) {
 func (p *Parser) parseNextNode(script *Script, end TokenType) (ok bool, err error) {
 	ok = true
 
-	tok, err := p.peek()
+	var tok *Token
 
-	if err != nil {
+	if tok, err = p.peek(); err != nil {
 		ok = false
 		return
 	}
@@ -489,8 +524,8 @@ func (p *Parser) parseNextNode(script *Script, end TokenType) (ok bool, err erro
 		if err = p.parseConst(script); err != nil {
 			return
 		}
-	case IDENT:
-		if err = p.parseIdent(script); err != nil {
+	case PERCENT, IDENT:
+		if err = p.parseIdent(script, tok); err != nil {
 			return
 		}
 	case NEWLINE:
@@ -527,10 +562,8 @@ func (p *Parser) Parse() (script *Script, err error) {
 	ok := true
 
 	for ok {
-		ok, err = p.parseNextNode(script, EOF)
-
-		if err != nil {
-			return nil, err
+		if ok, err = p.parseNextNode(script, EOF); err != nil {
+			return
 		}
 	}
 

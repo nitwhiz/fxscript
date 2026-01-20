@@ -2,28 +2,44 @@ package fx
 
 import (
 	"io"
+	"strconv"
+	"sync/atomic"
 
 	"github.com/nitwhiz/ring-buffer"
 )
 
 type TokenIterator struct {
+	prefix  string
 	src     TokenSource
 	drained bool
 	buf     *ring.Buffer[*Token]
 	bufSize int
 
 	prev *TokenIterator
+
+	lastInsertId *atomic.Int64
 }
 
-func NewTokenIterator(source TokenSource, bufSize int) *TokenIterator {
+func NewTokenIterator(prefix string, source TokenSource, bufSize int) *TokenIterator {
+	lastInsertId := atomic.Int64{}
+
+	lastInsertId.Store(-1)
+
 	return &TokenIterator{
+		prefix:  prefix,
 		src:     source,
 		drained: false,
 		buf:     ring.NewBuffer[*Token](bufSize),
 		bufSize: bufSize,
 
 		prev: nil,
+
+		lastInsertId: &lastInsertId,
 	}
+}
+
+func (i *TokenIterator) Prefixed(name string) string {
+	return i.prefix + "_" + name
 }
 
 func (i *TokenIterator) fillBuffer() (err error) {
@@ -40,9 +56,7 @@ func (i *TokenIterator) fillBuffer() (err error) {
 	var tok *Token
 
 	for range prefetch {
-		tok, err = i.src.NextToken()
-
-		if err != nil {
+		if tok, err = i.src.NextToken(); err != nil {
 			if err == io.EOF {
 				err = nil
 			}
@@ -63,15 +77,18 @@ func (i *TokenIterator) fillBuffer() (err error) {
 	return
 }
 
-func (i *TokenIterator) Insert(src TokenSource) {
+func (i *TokenIterator) Insert(prefix string, src TokenSource) {
 	i.prev = &TokenIterator{
-		src:     i.src,
-		buf:     i.buf,
-		bufSize: i.bufSize,
-		drained: i.drained,
-		prev:    i.prev,
+		prefix:       i.prefix,
+		src:          i.src,
+		buf:          i.buf,
+		bufSize:      i.bufSize,
+		drained:      i.drained,
+		prev:         i.prev,
+		lastInsertId: i.lastInsertId,
 	}
 
+	i.prefix = prefix + "_" + strconv.Itoa(int(i.lastInsertId.Add(1)))
 	i.src = src
 	i.buf = ring.NewBuffer[*Token](i.bufSize)
 	i.drained = false
@@ -113,14 +130,13 @@ func (i *TokenIterator) NextToken() (tok *Token, err error) {
 		return
 	}
 
-	tok, err = i.buf.ReadOne()
-
-	if err != nil {
+	if tok, err = i.buf.ReadOne(); err != nil {
 		if err == io.EOF {
 			tok = eofToken
 			err = nil
 
 			if i.prev == nil {
+				i.prefix = ""
 				i.src = nil
 				i.buf = nil
 				i.drained = true

@@ -67,15 +67,15 @@ func (n *CommandNode) String() string {
 
 	argStr := strings.Join(args, ", ")
 
-	return fmt.Sprintf("CMD(%02d) %s", n.Type, argStr)
+	return fmt.Sprintf("CMD(%02d, %s)", n.Type, argStr)
 }
 
 func (n *FloatNode) String() string {
-	return fmt.Sprintf("%f", n.Value)
+	return fmt.Sprintf("FLOAT(%f)", n.Value)
 }
 
 func (n *IntegerNode) String() string {
-	return fmt.Sprintf("%d", n.Value)
+	return fmt.Sprintf("INT(%d)", n.Value)
 }
 
 func (n *IdentifierNode) String() string {
@@ -87,7 +87,7 @@ func (n *ConstantNode) String() string {
 }
 
 func (n *StringNode) String() string {
-	return fmt.Sprintf("\"%s\"", n.Value)
+	return fmt.Sprintf("STRING(\"%s\")", n.Value)
 }
 
 func (n *AddressNode) String() string {
@@ -95,9 +95,9 @@ func (n *AddressNode) String() string {
 }
 
 func (n *BinaryOpNode) String() string {
-	return fmt.Sprintf("(%s %s %s)", n.Left, n.Operator, n.Right)
+	return fmt.Sprintf("BINARY(%s, %s, %s)", n.Left, n.Operator, n.Right)
 }
 
 func (n *UnaryOpNode) String() string {
-	return fmt.Sprintf("%s%s", n.Operator, n.Expr)
+	return fmt.Sprintf("UNARY(%s, %s)", n.Operator, n.Expr)
 }

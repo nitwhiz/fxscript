@@ -3,7 +3,6 @@ set A 42
 set *(&A) 13
 
 eval &A, A, *(1 - 1), *(&A), *A, *(42)
-# breakpoint
 
 --- EXPECT ---
 0

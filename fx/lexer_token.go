@@ -1,76 +1,14 @@
 package fx
 
-import "strconv"
+import (
+	"fmt"
+	"strconv"
+)
 
 type TokenType uint
 
 func (t TokenType) String() string {
-	return tokName(t)
-}
-
-const (
-	EOF TokenType = iota
-	ILLEGAL
-
-	NEWLINE
-	COMMA
-	COLON
-
-	STRING
-	IDENT
-	NUMBER
-
-	CONST
-
-	MACRO
-	ENDMACRO
-
-	LPAREN
-	RPAREN
-
-	ADD
-	SUB
-	MUL
-	DIV
-	MOD
-
-	SHL
-	SHR
-
-	LT
-	GT
-	LTE
-	GTE
-
-	EQ
-	NEQ
-
-	EXCL
-	INV
-
-	AND
-	OR
-
-	DOLLAR
-)
-
-const (
-	SynPlus      = "+"
-	SynMinus     = "-"
-	SynAsterisk  = "*"
-	SynSlash     = "/"
-	SynPercent   = "%"
-	SynExcl      = "!"
-	SynLower     = "<"
-	SynGreater   = ">"
-	SynEqual     = "="
-	SynInv       = "^"
-	SynAmpersand = "&"
-	SynPipe      = "|"
-)
-
-func tokName(tokType TokenType) string {
-	switch tokType {
+	switch t {
 	case EOF:
 		return "EOF"
 	case ILLEGAL:
@@ -128,9 +66,70 @@ func tokName(tokType TokenType) string {
 	case DOLLAR:
 		return "DOLLAR"
 	default:
-		return "MISSINGNAME(" + strconv.Itoa(int(tokType)) + ")"
+		return "MISSINGNAME(" + strconv.Itoa(int(t)) + ")"
 	}
 }
+
+const (
+	EOF TokenType = iota
+	ILLEGAL
+
+	NEWLINE
+	COMMA
+	COLON
+
+	STRING
+	IDENT
+	NUMBER
+
+	CONST
+
+	MACRO
+	ENDMACRO
+
+	LPAREN
+	RPAREN
+
+	ADD
+	SUB
+	MUL
+	DIV
+
+	SHL
+	SHR
+
+	LT
+	GT
+	LTE
+	GTE
+
+	EQ
+	NEQ
+
+	EXCL
+	INV
+
+	AND
+	OR
+
+	DOLLAR
+	PERCENT
+)
+
+const (
+	SynPlus      = "+"
+	SynMinus     = "-"
+	SynAsterisk  = "*"
+	SynSlash     = "/"
+	SynPercent   = "%"
+	SynExcl      = "!"
+	SynLower     = "<"
+	SynGreater   = ">"
+	SynEqual     = "="
+	SynInv       = "^"
+	SynAmpersand = "&"
+	SynPipe      = "|"
+)
 
 type Token struct {
 	Type  TokenType
@@ -138,7 +137,7 @@ type Token struct {
 }
 
 func (t *Token) String() string {
-	return t.Value
+	return fmt.Sprintf("%s(%s)", t.Type, t.Value)
 }
 
 var keywords = map[string]TokenType{

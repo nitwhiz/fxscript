@@ -312,6 +312,35 @@ func TestParser_Macros(t *testing.T) {
 	require.Empty(t, labels)
 }
 
+func TestParser_MacrosWithLocalLabels(t *testing.T) {
+	script := `
+		macro mLoop
+		%start:
+			myCmd A
+			myCmd %start
+		endmacro
+
+		mLoop
+		mLoop
+	`
+
+	commands, constants, labels, macros, err := parse(script)
+
+	require.NoError(t, err)
+
+	expectedCommands := []*CommandNode{
+		{cmdMyCmd, []ExpressionNode{&IdentifierNode{identA}}},
+		{cmdMyCmd, []ExpressionNode{&AddressNode{0}}},
+		{cmdMyCmd, []ExpressionNode{&IdentifierNode{identA}}},
+		{cmdMyCmd, []ExpressionNode{&AddressNode{2}}},
+	}
+
+	require.Equal(t, expectedCommands, commands)
+	require.Len(t, constants, 0)
+	require.Len(t, labels, 2)
+	require.Len(t, macros, 1)
+}
+
 func TestParser_Constants(t *testing.T) {
 	script := `
 		const msgHello "Hello World!"

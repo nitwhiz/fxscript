@@ -17,9 +17,7 @@ type PreprocessorDirective struct {
 func prepReplace(scriptData []byte, directive *PreprocessorDirective) (resultScriptData []byte, next int, size int, err error) {
 	var bs []byte
 
-	bs, err = loadScriptSource(directive.FS, path.Join(directive.Dir, directive.Argument))
-
-	if err != nil {
+	if bs, err = loadScriptSource(directive.FS, path.Join(directive.Dir, directive.Argument)); err != nil {
 		return
 	}
 
@@ -38,9 +36,7 @@ func prepReplace(scriptData []byte, directive *PreprocessorDirective) (resultScr
 func prepHandleDirective(scriptData []byte, directive *PreprocessorDirective) (resultScriptData []byte, next int, size int, err error) {
 	switch directive.Directive {
 	case "@include":
-		resultScriptData, next, size, err = prepReplace(scriptData, directive)
-
-		if err != nil {
+		if resultScriptData, next, size, err = prepReplace(scriptData, directive); err != nil {
 			return
 		}
 

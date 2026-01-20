@@ -109,7 +109,7 @@ func evalOp[T numeric](op fx.TokenType, a, b T) (v T, err error) {
 	case fx.DIV:
 		v = div(a, b)
 		break
-	case fx.MOD:
+	case fx.PERCENT:
 		v = T(mod(a, b))
 		break
 	case fx.LT:
@@ -160,9 +160,7 @@ func (f *RuntimeFrame) evalUnaryOp(n *fx.UnaryOpNode) (v any, err error) {
 		}
 	}
 
-	v, err = f.Eval(n.Expr)
-
-	if err != nil {
+	if v, err = f.Eval(n.Expr); err != nil {
 		return
 	}
 
@@ -215,17 +213,17 @@ func (f *RuntimeFrame) evalUnaryOp(n *fx.UnaryOpNode) (v any, err error) {
 	return
 }
 
-func (f *RuntimeFrame) evalBinaryOp(n *fx.BinaryOpNode) (any, error) {
-	left, err := f.Eval(n.Left)
+func (f *RuntimeFrame) evalBinaryOp(n *fx.BinaryOpNode) (result any, err error) {
+	result = 0
 
-	if err != nil {
-		return 0, err
+	var left, right any
+
+	if left, err = f.Eval(n.Left); err != nil {
+		return
 	}
 
-	right, err := f.Eval(n.Right)
-
-	if err != nil {
-		return 0, err
+	if right, err = f.Eval(n.Right); err != nil {
+		return
 	}
 
 	var ok bool
@@ -276,7 +274,9 @@ func (f *RuntimeFrame) evalBinaryOp(n *fx.BinaryOpNode) (any, error) {
 		return evalOp(n.Operator.Type, *fLeft, float64(*iRight))
 	}
 
-	return 0, &fx.RuntimeError{&fx.UnexpectedBinaryOpError{left, right}}
+	err = &fx.RuntimeError{&fx.UnexpectedBinaryOpError{left, right}}
+
+	return
 }
 
 func (f *RuntimeFrame) Eval(node fx.ExpressionNode) (v any, err error) {

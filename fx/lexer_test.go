@@ -186,13 +186,14 @@ func TestLexer_Or(t *testing.T) {
 func TestLexer_Labels(t *testing.T) {
 	script := `
 		some-label:
-		someLabel2:
+		%someLabel2:
 	`
 
 	expectedTokens := []*Token{
 		{IDENT, "some-label"},
 		{COLON, ""},
 		{NEWLINE, ""},
+		{PERCENT, "%"},
 		{IDENT, "someLabel2"},
 		{COLON, ""},
 		{NEWLINE, ""},

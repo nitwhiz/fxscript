@@ -36,7 +36,7 @@ func (e *ArgumentTypeError) Unwrap() error {
 	return e.Err
 }
 
-func (f *RuntimeFrame) unmarshalArgs(argv []fx.ExpressionNode, v any) error {
+func (f *RuntimeFrame) unmarshalArgs(argv []fx.ExpressionNode, v any) (err error) {
 	typ := reflect.TypeOf(v).Elem()
 	val := reflect.ValueOf(v).Elem()
 
@@ -52,12 +52,8 @@ func (f *RuntimeFrame) unmarshalArgs(argv []fx.ExpressionNode, v any) error {
 			if segments[0] == "" {
 				argIdx = i
 			} else {
-				var err error
-
-				argIdx, err = strconv.Atoi(segments[0])
-
-				if err != nil {
-					return err
+				if argIdx, err = strconv.Atoi(segments[0]); err != nil {
+					return
 				}
 			}
 
@@ -67,7 +63,8 @@ func (f *RuntimeFrame) unmarshalArgs(argv []fx.ExpressionNode, v any) error {
 				if len(segments) == 2 && segments[1] == "optional" {
 					useDefaultValue = true
 				} else {
-					return &MissingArgumentError{argIdx, typField.Name, typField.Type.Name()}
+					err = &MissingArgumentError{argIdx, typField.Name, typField.Type.Name()}
+					return
 				}
 			}
 
@@ -76,14 +73,16 @@ func (f *RuntimeFrame) unmarshalArgs(argv []fx.ExpressionNode, v any) error {
 			if useDefaultValue {
 				switch valField.Interface().(type) {
 				case fx.Identifier:
-					return &ArgumentTypeError{argIdx, typField.Name, typField.Type.Name(), ErrInvalidOptional}
+					err = &ArgumentTypeError{argIdx, typField.Name, typField.Type.Name(), ErrInvalidOptional}
+					return
 				}
 			} else {
 				node := argv[argIdx]
-				rawValue, err := f.Eval(node)
 
-				if err != nil {
-					return err
+				var rawValue any
+
+				if rawValue, err = f.Eval(node); err != nil {
+					return
 				}
 
 				switch valField.Interface().(type) {
@@ -99,7 +98,8 @@ func (f *RuntimeFrame) unmarshalArgs(argv []fx.ExpressionNode, v any) error {
 							valField.Set(reflect.ValueOf(fx.Identifier(int(v))))
 							break
 						default:
-							return &ArgumentTypeError{argIdx, typField.Name, typField.Type.Name(), fmt.Errorf("unsupported type: %T", rawValue)}
+							err = &ArgumentTypeError{argIdx, typField.Name, typField.Type.Name(), fmt.Errorf("unsupported type: %T", rawValue)}
+							return
 						}
 					}
 					break
@@ -129,13 +129,14 @@ func (f *RuntimeFrame) unmarshalArgs(argv []fx.ExpressionNode, v any) error {
 					valField.Set(reflect.ValueOf(rawValue))
 					break
 				default:
-					return &ArgumentTypeError{argIdx, typField.Name, typField.Type.Name(), fmt.Errorf("unsupported type: %T", rawValue)}
+					err = &ArgumentTypeError{argIdx, typField.Name, typField.Type.Name(), fmt.Errorf("unsupported type: %T", rawValue)}
+					return
 				}
 			}
 		}
 	}
 
-	return nil
+	return
 }
 
 func WithArgs[ArgsType any](f *RuntimeFrame, cmdArgs []fx.ExpressionNode, h func(f *RuntimeFrame, args *ArgsType) (jumpTarget int, jump bool)) (jumpTarget int, jump bool) {

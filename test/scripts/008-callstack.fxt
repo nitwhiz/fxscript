@@ -1,0 +1,29 @@
+
+set A, 5
+
+call add1
+call add1
+
+goto end
+
+add1:
+  eval "add1 called"
+  set A, A + 1
+  call add2
+  set A, A + 1
+  ret
+
+add2:
+  eval "add2 called"
+  set A, A + 2
+  ret
+
+end:
+  eval A
+
+--- EXPECT ---
+"add1 called"
+"add2 called"
+"add1 called"
+"add2 called"
+13

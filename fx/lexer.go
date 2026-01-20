@@ -182,7 +182,7 @@ func (l *Lexer) lexOperator() *Token {
 		tokType = DIV
 		break
 	case SynPercent:
-		tokType = MOD
+		tokType = PERCENT
 		break
 	case SynLower:
 		tokType = LT

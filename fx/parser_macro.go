@@ -16,18 +16,20 @@ func macroArgToken(argTokens []*Token, offset int) (argName string, ok bool, nex
 }
 
 type Macro struct {
+	name string
 	args map[string]int
 	body *TokenSlice
 }
 
-func newMacro(signature []string, body []*Token) *Macro {
+func newMacro(name string, argumentNames []string, body []*Token) *Macro {
 	args := make(map[string]int)
 
-	for i, arg := range signature {
+	for i, arg := range argumentNames {
 		args[arg] = i
 	}
 
 	return &Macro{
+		name: name,
 		args: args,
 		body: newTokenSlice(body),
 	}
