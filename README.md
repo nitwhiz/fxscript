@@ -85,8 +85,6 @@ set health, 100
 set health, (health + 10)
 ```
 
-Note: Commas are optional and can be used to separate command arguments for better readability.
-
 ### Operators and Expressions
 
 FXScript supports arithmetic, logical, and bitwise expressions.
@@ -130,8 +128,24 @@ end:
 ### Preprocessor and Directives
 
 - `const name value`: Defines a script-level constant.
-- `macro name ... endmacro`: Defines a macro.
+- `macro name ... endmacro`: Defines a macro. [See Macros](#macros) for details.
 - `@include "file"`: Includes another file during preprocessing.
+
+### Macros
+
+Macros allow you to define reusable blocks of code. They can also take parameters, which are prefixed with a `$` sign.
+
+```
+macro my_macro $param1, $param2
+    set A, ($param1 + $param2)
+endmacro
+
+my_macro 10, 20
+```
+
+In this example, `my_macro 10, 20` will be expanded to `set A, (10 + 20)`.
+
+Macro arguments are literally replaced in the macro body.
 
 ### Built-in Commands
 
