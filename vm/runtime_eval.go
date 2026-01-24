@@ -177,13 +177,13 @@ func (f *RuntimeFrame) evalUnaryOp(n *fx.UnaryOpNode) (v any, err error) {
 	case fx.MUL:
 		switch o := v.(type) {
 		case fx.Identifier:
-			v = f.Get(o)
+			v = f.getValue(o)
 			break
 		case int:
-			v = f.Get(fx.Identifier(o))
+			v = f.getValue(fx.Identifier(o))
 			break
 		case float64:
-			v = f.Get(fx.Identifier(int(o)))
+			v = f.getValue(fx.Identifier(int(o)))
 			break
 		}
 	case fx.INV:
@@ -297,7 +297,7 @@ func (f *RuntimeFrame) Eval(node fx.ExpressionNode) (v any, err error) {
 		v = n.Value
 		break
 	case *fx.IdentifierNode:
-		v = f.Get(n.Identifier)
+		v = f.getValue(n.Identifier)
 		break
 	case *fx.AddressNode:
 		v = n.Address

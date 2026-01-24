@@ -1,5 +1,7 @@
 package fx
 
+const VariableOffset = 1024 * 16
+
 type Script struct {
 	commands []*CommandNode
 
@@ -7,6 +9,7 @@ type Script struct {
 	symbols   map[string][]*AddressNode
 	constants map[string]ExpressionNode
 	macros    map[string]*Macro
+	variables map[string]int
 }
 
 func newScript() *Script {
@@ -16,7 +19,12 @@ func newScript() *Script {
 		symbols:   make(map[string][]*AddressNode),
 		constants: make(map[string]ExpressionNode),
 		macros:    make(map[string]*Macro),
+		variables: make(map[string]int),
 	}
+}
+
+func (s *Script) addVariable(varName string) {
+	s.variables[varName] = VariableOffset + len(s.variables)
 }
 
 func (s *Script) addSymbol(label string, addr *AddressNode) {
@@ -60,4 +68,12 @@ func (s *Script) Commands() []*CommandNode {
 
 func (s *Script) Labels() map[string]int {
 	return s.labels
+}
+
+func (s *Script) Symbols() map[string][]*AddressNode {
+	return s.symbols
+}
+
+func (s *Script) Variables() map[string]int {
+	return s.variables
 }

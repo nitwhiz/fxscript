@@ -149,6 +149,13 @@ func (p *Parser) resolveIdent(script *Script, tok *Token) (expr ExpressionNode, 
 		return
 	}
 
+	var varIdent int
+
+	if varIdent, ok = script.variables[tok.Value]; ok {
+		expr = &IdentifierNode{Identifier(varIdent)}
+		return
+	}
+
 	var identifier Identifier
 
 	if identifier, ok = p.getIdentifier(tok.Value); ok {
@@ -330,6 +337,22 @@ func (p *Parser) parseConst(script *Script) (err error) {
 	}
 
 	script.constants[nameIdent.Value], err = p.parseExpression(script)
+
+	return
+}
+
+func (p *Parser) parseVariable(script *Script) (err error) {
+	if _, err = p.advance(); err != nil {
+		return
+	}
+
+	var nameIdent *Token
+
+	if nameIdent, err = p.advance(); err != nil {
+		return
+	}
+
+	script.addVariable(nameIdent.Value)
 
 	return
 }
@@ -522,6 +545,10 @@ func (p *Parser) parseNextNode(script *Script, end TokenType) (ok bool, err erro
 		}
 	case CONST:
 		if err = p.parseConst(script); err != nil {
+			return
+		}
+	case VAR:
+		if err = p.parseVariable(script); err != nil {
 			return
 		}
 	case PERCENT, IDENT:

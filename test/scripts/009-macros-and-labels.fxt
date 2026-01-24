@@ -2,10 +2,10 @@
 macro m1 $change
   eval $change
   set A, 1
-  %loop:
+  %_loop:
     set A, A + $change
     eval A
-    jumpIf A <= 10, %loop
+    jumpIf A <= 10, %_loop
     eval "A is now more than 10"
     goto %end
   %end:

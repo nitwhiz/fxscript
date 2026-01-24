@@ -27,6 +27,8 @@ func (t TokenType) String() string {
 		return "NUMBER"
 	case CONST:
 		return "CONST"
+	case VAR:
+		return "VAR"
 	case MACRO:
 		return "MACRO"
 	case ENDMACRO:
@@ -83,6 +85,7 @@ const (
 	NUMBER
 
 	CONST
+	VAR
 
 	MACRO
 	ENDMACRO
@@ -140,7 +143,8 @@ func (t *Token) String() string {
 	return fmt.Sprintf("%s(%s)", t.Type, t.Value)
 }
 
-var keywords = map[string]TokenType{
+var identKeywords = map[string]TokenType{
+	"var":      VAR,
 	"const":    CONST,
 	"macro":    MACRO,
 	"endmacro": ENDMACRO,

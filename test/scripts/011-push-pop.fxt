@@ -1,0 +1,24 @@
+
+set A, 1
+push A
+set A, 2
+push A
+set A, 3
+push A
+set A, 4
+push A
+
+pop A
+eval A
+pop A
+eval A
+pop A
+eval A
+pop A
+eval A
+
+--- EXPECT ---
+4
+3
+2
+1

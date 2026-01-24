@@ -130,6 +130,7 @@ end:
 ### Preprocessor and Directives
 
 - `const name value`: Defines a script-level constant.
+- `var name`: Declares a script-level variable. The runtime will automatically assign an address to this variable.
 - `macro name ... endmacro`: Defines a macro. [See Macros](#macros) for details.
 - `@include "file"`: Includes another file during preprocessing.
 
@@ -169,6 +170,8 @@ my_loop 20
 
 - `nop`: No operation.
 - `set <ident>, <value>`: Sets identifier to value.
+- `push <ident>`: Pushes a ident value onto the stack.
+- `pop <ident>`: Pops a value from the stack and stores it at the address of the identifier.
 - `goto <label/addr>`: Jumps to label or address.
 - `call <label/addr>`: Calls subroutine at label or address.
 - `ret`: Returns from subroutine.

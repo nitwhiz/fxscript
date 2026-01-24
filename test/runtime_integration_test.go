@@ -30,13 +30,13 @@ const (
 )
 
 type TestEnv struct {
-	t *testing.T
+	t testing.TB
 
 	values  map[fx.Identifier]int
 	results []any
 }
 
-func NewTestEnv(t *testing.T) *TestEnv {
+func NewTestEnv(t testing.TB) *TestEnv {
 	return &TestEnv{
 		t: t,
 
@@ -195,6 +195,59 @@ func TestIntegration(t *testing.T) {
 				missingChecks := len(e.results) - rPtr
 				t.Fatal("not all results were checked: missing " + strconv.Itoa(missingChecks) + " EXPECT line(s)")
 			}
+		})
+	}
+}
+
+func BenchmarkIntegration(b *testing.B) {
+	testScripts, err := filepath.Glob("scripts/*." + testFileExt)
+
+	require.NoError(b, err)
+
+	slices.Sort(testScripts)
+
+	identifiers := fx.IdentifierTable{
+		"A": identA,
+	}
+
+	for _, scriptPath := range testScripts {
+		b.Run(strings.TrimSuffix(filepath.Base(scriptPath), "."+testFileExt), func(b *testing.B) {
+			data, err := os.ReadFile(scriptPath)
+
+			require.NoError(b, err)
+
+			segments := bytes.Split(data, []byte("--- EXPECT ---\n"))
+
+			require.Len(b, segments, 2)
+
+			e := NewTestEnv(b)
+
+			rtCfg := &vm.RuntimeConfig{
+				UserCommands: []*vm.Command{
+					{"eval", cmdEval, e.handleEval},
+					{"break", cmdBreakpoint, e.handleBreak},
+				},
+				Identifiers: identifiers,
+			}
+
+			parserConfig := rtCfg.ParserConfig()
+
+			fxs, err := fx.LoadScript(segments[0], parserConfig)
+
+			require.NoError(b, err)
+
+			b.ResetTimer()
+
+			for i := 0; i < b.N; i++ {
+				rt := vm.NewRuntime(fxs, rtCfg)
+
+				b.StartTimer()
+
+				rt.Start(0, e)
+
+				b.StopTimer()
+			}
+
 		})
 	}
 }

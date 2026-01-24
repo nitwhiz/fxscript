@@ -120,7 +120,7 @@ func (l *Lexer) lexIdent() *Token {
 
 	ident := l.substr(n)
 
-	if tokTyp, ok := keywords[ident]; ok {
+	if tokTyp, ok := identKeywords[ident]; ok {
 		return newToken(tokTyp, "")
 	}
 

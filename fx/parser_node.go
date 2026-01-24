@@ -30,10 +30,6 @@ type IdentifierNode struct {
 	Identifier Identifier
 }
 
-type ConstantNode struct {
-	Name string
-}
-
 type StringNode struct {
 	Value string
 }
@@ -52,7 +48,6 @@ type BinaryOpNode struct {
 func (n *FloatNode) exprNode()      {}
 func (n *IntegerNode) exprNode()    {}
 func (n *IdentifierNode) exprNode() {}
-func (n *ConstantNode) exprNode()   {}
 func (n *StringNode) exprNode()     {}
 func (n *AddressNode) exprNode()    {}
 func (n *BinaryOpNode) exprNode()   {}
@@ -80,10 +75,6 @@ func (n *IntegerNode) String() string {
 
 func (n *IdentifierNode) String() string {
 	return fmt.Sprintf("IDENT(%d)", n.Identifier)
-}
-
-func (n *ConstantNode) String() string {
-	return fmt.Sprintf("CONST(%s)", n.Name)
 }
 
 func (n *StringNode) String() string {

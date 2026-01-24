@@ -370,6 +370,27 @@ func TestParser_Constants(t *testing.T) {
 	require.Empty(t, macros)
 }
 
+func TestParser_Variables(t *testing.T) {
+	script := `
+		var myVar
+		myCmd myVar 42
+	`
+
+	commands, constants, labels, macros, err := parse(script)
+
+	require.NoError(t, err)
+
+	expectedCommands := []*CommandNode{
+		{cmdMyCmd, []ExpressionNode{&IdentifierNode{VariableOffset}, &IntegerNode{42}}},
+	}
+
+	require.Equal(t, expectedCommands, commands)
+
+	require.Empty(t, constants)
+	require.Empty(t, labels)
+	require.Empty(t, macros)
+}
+
 func TestParser_Strings(t *testing.T) {
 	script := `
 		myCmd "Hello World!"

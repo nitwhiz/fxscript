@@ -16,6 +16,23 @@ type RuntimeFrame struct {
 	stack []int
 }
 
+func (f *RuntimeFrame) setValue(identifier fx.Identifier, value int) {
+	if identifier >= fx.VariableOffset {
+		f.setMemory(identifier, value)
+		return
+	}
+
+	f.Environment.Set(identifier, value)
+}
+
+func (f *RuntimeFrame) getValue(identifier fx.Identifier) (value int) {
+	if identifier >= fx.VariableOffset {
+		return f.getMemory(identifier)
+	}
+
+	return f.Environment.Get(identifier)
+}
+
 func (f *RuntimeFrame) pushStack(v int) {
 	f.stack[f.sp] = v
 	f.sp++

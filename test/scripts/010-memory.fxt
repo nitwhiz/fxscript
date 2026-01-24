@@ -1,0 +1,25 @@
+
+var rA
+var multiHitCounter
+
+macro randMultiHitCounter2To5
+  push rA
+  set rA, 9 # "random" value
+  set rA, rA & 3
+  jumpIf rA <= 1, %_else
+  set rA, 9
+  set rA, (rA & 3) + 2
+%_else:
+  set rA, rA + 2
+  set multiHitCounter, rA
+  pop rA
+endmacro
+
+randMultiHitCounter2To5
+
+eval multiHitCounter
+eval rA
+
+--- EXPECT ---
+3
+0

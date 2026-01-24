@@ -17,25 +17,49 @@ type Runtime struct {
 	script    *fx.Script
 	handlers  []CommandHandler
 	stackSize int
+	memory    []int
 }
 
 func NewRuntime(s *fx.Script, cfg *RuntimeConfig) *Runtime {
 	stackSize := cfg.StackSize
 
 	if stackSize == 0 {
-		stackSize = 16
+		stackSize = 32
 	}
 
 	r := Runtime{
 		script:    s,
 		handlers:  make([]CommandHandler, 0, fx.UserCommandOffset),
 		stackSize: stackSize,
+		memory:    make([]int, len(s.Variables())),
 	}
 
 	r.RegisterCommands(BaseCommands)
 	r.RegisterCommands(cfg.UserCommands)
 
 	return &r
+}
+
+func (r *Runtime) setMemory(variable fx.Identifier, value int) {
+	addr := int(variable - fx.VariableOffset)
+
+	if addr > len(r.memory) {
+		return
+	}
+
+	r.memory[addr] = value
+}
+
+func (r *Runtime) getMemory(variable fx.Identifier) (value int) {
+	addr := int(variable - fx.VariableOffset)
+
+	if addr >= len(r.memory) {
+		value = 0
+		return
+	}
+
+	value = r.memory[addr]
+	return
 }
 
 func (r *Runtime) NewFrame(pc int, env Environment) *RuntimeFrame {

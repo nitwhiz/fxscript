@@ -6,6 +6,26 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestLexer_Comments(t *testing.T) {
+	script := `
+		# this is a 42.1337 # comment
+		cmd1 arg1 # this is another comment with "stuff" in it
+	`
+
+	expectedTokens := []*Token{
+		{IDENT, "cmd1"},
+		{IDENT, "arg1"},
+		{NEWLINE, ""},
+		{EOF, ""},
+	}
+
+	l := NewLexer([]byte(script))
+
+	tokens := l.Lex()
+
+	require.Equal(t, expectedTokens, tokens)
+}
+
 func TestLexer_Ident(t *testing.T) {
 	script := `
 		cmd1 arg1
@@ -247,6 +267,25 @@ func TestLexer_Constants(t *testing.T) {
 		{CONST, ""},
 		{IDENT, "wordCount"},
 		{NUMBER, "2"},
+		{NEWLINE, ""},
+		{EOF, ""},
+	}
+
+	l := NewLexer([]byte(script))
+
+	tokens := l.Lex()
+
+	require.Equal(t, expectedTokens, tokens)
+}
+
+func TestLexer_Variables(t *testing.T) {
+	script := `
+		var myVar
+	`
+
+	expectedTokens := []*Token{
+		{VAR, ""},
+		{IDENT, "myVar"},
 		{NEWLINE, ""},
 		{EOF, ""},
 	}

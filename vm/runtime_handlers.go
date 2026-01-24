@@ -8,6 +8,31 @@ func handleNop(*RuntimeFrame, []fx.ExpressionNode) (jumpTarget int, jump bool) {
 	return
 }
 
+func handlePush(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump bool) {
+	type Args struct {
+		Variable fx.Identifier `arg:""`
+	}
+
+	return WithArgs(f, cmdArgs, func(f *RuntimeFrame, args *Args) (jumpTarget int, jump bool) {
+		f.pushStack(f.getValue(args.Variable))
+		return
+	})
+}
+
+func handlePop(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump bool) {
+	type Args struct {
+		Variable fx.Identifier `arg:""`
+	}
+
+	return WithArgs(f, cmdArgs, func(f *RuntimeFrame, args *Args) (jumpTarget int, jump bool) {
+		if v, ok := f.popStack(); ok {
+			f.setValue(args.Variable, v)
+		}
+
+		return
+	})
+}
+
 func handleGoto(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump bool) {
 	type Args struct {
 		JumpTarget int `arg:""`
@@ -25,6 +50,11 @@ func handleSet(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, ju
 	}
 
 	return WithArgs(f, cmdArgs, func(f *RuntimeFrame, args *Args) (jumpTarget int, jump bool) {
+		if args.Variable >= fx.VariableOffset {
+			f.setMemory(args.Variable, args.Value)
+			return
+		}
+
 		f.Set(args.Variable, args.Value)
 		return
 	})
