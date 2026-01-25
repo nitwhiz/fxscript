@@ -1,0 +1,39 @@
+
+goto main
+
+func1:
+  set A, 10
+  goto %_two
+%_one:
+  eval A # should be skipped
+  set A, 11
+%_two:
+  eval A
+  set A, 12
+  ret
+
+func2:
+  set A, 20
+  goto %_two
+%_one:
+  eval A # should be skipped
+  set A, 21
+%_two:
+  eval A
+  set A, 22
+  ret
+
+main:
+  call func1
+  call func2
+  call func1
+  call func2
+
+eval A
+
+--- EXPECT ---
+10
+20
+10
+20
+22

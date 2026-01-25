@@ -484,6 +484,7 @@ func (p *Parser) parseLabelDeclaration(script *Script, prefixed bool) (err error
 	if prefixed {
 		name = p.src.Prefixed(nameIdent.Value)
 	} else {
+		p.src.SetPrefix(nameIdent.Value)
 		name = nameIdent.Value
 	}
 

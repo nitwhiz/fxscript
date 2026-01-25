@@ -38,8 +38,12 @@ func NewTokenIterator(prefix string, source TokenSource, bufSize int) *TokenIter
 	}
 }
 
+func (i *TokenIterator) SetPrefix(prefix string) {
+	i.prefix = prefix
+}
+
 func (i *TokenIterator) Prefixed(name string) string {
-	return i.prefix + "_" + name
+	return i.prefix + name
 }
 
 func (i *TokenIterator) fillBuffer() (err error) {

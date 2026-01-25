@@ -29,5 +29,5 @@ const (
 	CmdSet
 	CmdJumpIf
 
-	UserCommandOffset = 100
+	UserCommandOffset
 )
