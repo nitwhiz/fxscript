@@ -1,6 +1,8 @@
 package vm
 
 import (
+	"fmt"
+
 	"github.com/nitwhiz/fxscript/fx"
 )
 
@@ -153,11 +155,79 @@ func evalOp[T numeric](op fx.TokenType, a, b T) (v T, err error) {
 	return
 }
 
-func (f *RuntimeFrame) evalUnaryOp(n *fx.UnaryOpNode) (v any, err error) {
-	if n.Operator.Type == fx.AND {
-		if v, ok := n.Expr.(*fx.IdentifierNode); ok {
-			return int(v.Identifier), nil
+func (f *RuntimeFrame) evalPointer(n *fx.UnaryOpNode) (v any, ok bool, err error) {
+	switch n.Operator.Type {
+	case fx.AND:
+		switch e := n.Expr.(type) {
+		case *fx.IdentifierNode:
+			v = int(e.Identifier)
+			break
+		case *fx.IntegerNode:
+			v = e.Value
+			break
+		default:
+			v, err = f.Eval(n.Expr)
+
+			switch v.(type) {
+			case fx.Identifier:
+				v = int(v.(fx.Identifier))
+				break
+			case int:
+				v = v.(int)
+				break
+			default:
+				err = &fx.RuntimeError{&fx.UnresolvedSymbolError{fmt.Sprintf("%+v", v)}}
+			}
+
+			break
 		}
+
+		ok = true
+
+		return
+	case fx.MUL:
+		switch e := n.Expr.(type) {
+		case *fx.IdentifierNode:
+			v = f.getValue(e.Identifier)
+			break
+		case *fx.IntegerNode:
+			v = f.getValue(fx.Identifier(e.Value))
+			break
+		default:
+			v, err = f.Eval(n.Expr)
+
+			switch v.(type) {
+			case fx.Identifier:
+				v = f.getValue(v.(fx.Identifier))
+				break
+			case int:
+				v = f.getValue(fx.Identifier(v.(int)))
+				break
+			default:
+				err = &fx.RuntimeError{&fx.UnresolvedSymbolError{fmt.Sprintf("%+v", v)}}
+				break
+			}
+
+			break
+		}
+
+		ok = true
+
+		return
+	default:
+		break
+	}
+
+	return
+}
+
+func (f *RuntimeFrame) evalUnaryOp(n *fx.UnaryOpNode) (v any, err error) {
+	var ok bool
+
+	v, ok, err = f.evalPointer(n)
+
+	if err != nil || ok {
+		return
 	}
 
 	if v, err = f.Eval(n.Expr); err != nil {
@@ -172,18 +242,6 @@ func (f *RuntimeFrame) evalUnaryOp(n *fx.UnaryOpNode) (v any, err error) {
 			break
 		case float64:
 			v = -o
-			break
-		}
-	case fx.MUL:
-		switch o := v.(type) {
-		case fx.Identifier:
-			v = f.getValue(o)
-			break
-		case int:
-			v = f.getValue(fx.Identifier(o))
-			break
-		case float64:
-			v = f.getValue(fx.Identifier(int(o)))
 			break
 		}
 	case fx.INV:

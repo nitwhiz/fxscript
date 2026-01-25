@@ -1,0 +1,22 @@
+
+var dstPtr
+var arg1
+
+goto main
+
+func:
+  pop arg1
+  pop dstPtr
+  set *dstPtr, arg1
+  ret
+
+var tmp
+
+main:
+  push &tmp
+  push 42
+  call func
+  eval tmp
+
+--- EXPECT ---
+42

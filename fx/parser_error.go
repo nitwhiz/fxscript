@@ -97,3 +97,11 @@ type MissingMacroArgumentError struct {
 func (e *MissingMacroArgumentError) Error() string {
 	return fmt.Sprintf("missing macro argument '%s'", e.Name)
 }
+
+type UnresolvedSymbolError struct {
+	Symbol string
+}
+
+func (e *UnresolvedSymbolError) Error() string {
+	return fmt.Sprintf("unresolved symbol '%s'", e.Symbol)
+}

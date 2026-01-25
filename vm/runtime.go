@@ -14,24 +14,32 @@ type Environment interface {
 }
 
 type Runtime struct {
-	script    *fx.Script
-	handlers  []CommandHandler
-	stackSize int
-	memory    []int
+	script           *fx.Script
+	handlers         []CommandHandler
+	callStackSize    int
+	operandStackSize int
+	memory           []int
 }
 
 func NewRuntime(s *fx.Script, cfg *RuntimeConfig) *Runtime {
-	stackSize := cfg.StackSize
+	callStackSize := cfg.CallStackSize
 
-	if stackSize == 0 {
-		stackSize = 32
+	if callStackSize == 0 {
+		callStackSize = 32
+	}
+
+	operandStackSize := cfg.OperandStackSize
+
+	if operandStackSize == 0 {
+		operandStackSize = 64
 	}
 
 	r := Runtime{
-		script:    s,
-		handlers:  make([]CommandHandler, 0, fx.UserCommandOffset),
-		stackSize: stackSize,
-		memory:    make([]int, len(s.Variables())),
+		script:           s,
+		handlers:         make([]CommandHandler, 0, fx.UserCommandOffset),
+		callStackSize:    callStackSize,
+		operandStackSize: operandStackSize,
+		memory:           make([]int, len(s.Variables())),
 	}
 
 	r.RegisterCommands(BaseCommands)
@@ -64,10 +72,11 @@ func (r *Runtime) getMemory(variable fx.Identifier) (value int) {
 
 func (r *Runtime) NewFrame(pc int, env Environment) *RuntimeFrame {
 	return &RuntimeFrame{
-		Environment: env,
-		Runtime:     r,
-		pc:          pc,
-		stack:       make([]int, r.stackSize),
+		Environment:  env,
+		Runtime:      r,
+		pc:           pc,
+		callStack:    make([]int, r.callStackSize),
+		operandStack: make([]int, r.operandStackSize),
 	}
 }
 

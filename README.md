@@ -100,13 +100,13 @@ FXScript supports arithmetic, logical, and bitwise expressions.
 
 #### Pointer and Address Operators
 
-- `&<ident>`: Returns the **address** of the identifier.
-- `*<expr>`: Treats the result of `<expr>` as an address and returns the value of the variable at that address.
+- `&<value>`: Returns **address** of `<value>` if the `<value>` is an `identifier` or the `<value>` itself if it's an integer.
+- `*<expr>`: Treats the result of `<expr>` as an address and returns the value from the memory at that address.
 
 ```
 set a, 100
-set b, *a     // b = value of variable at address 100
-set c, *(a+1) // c = value of variable at address (a + 1)
+set b, *a     // b = value of memory at address 100
+set c, *(a+1) // c = value of memory at address (a + 1)
 set d, &a     // d = address of identifier 'a'
 
 set flags, (flags | 1)        // Set bit 0
@@ -259,8 +259,8 @@ The `vm.WithArgs` helper supports unmarshalling into a struct. The behavior depe
 
 The `set` command uses `Variable fx.Identifier` and `Value int`.
 
-- `set A, 10`: Sets the variable at address `A` to `10`.
-- `set A, B`: Sets variable `A` to the **value** of `B`.
-- `set A, *B`: Sets variable `A` to the value of the variable pointed to by `B`.
-- `set A, &B`: Sets variable `A` to the **address** of `B`.
-- `set *A, 10`: Sets the variable whose address is the value of `A` to `10`.
+- `set A, 10`: Sets the memory at address `A` to `10`.
+- `set A, B`: Sets memory `A` to the **value** of `B`.
+- `set A, *B`: Sets memory `A` to the value of the variable pointed to by `B`.
+- `set A, &B`: Sets memory `A` to the **address** of `B`.
+- `set *A, 10`: Sets the memory value whose address is the value of `A` to `10`.

@@ -10,11 +10,11 @@ func handleNop(*RuntimeFrame, []fx.ExpressionNode) (jumpTarget int, jump bool) {
 
 func handlePush(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump bool) {
 	type Args struct {
-		Variable fx.Identifier `arg:""`
+		Value int `arg:""`
 	}
 
 	return WithArgs(f, cmdArgs, func(f *RuntimeFrame, args *Args) (jumpTarget int, jump bool) {
-		f.pushStack(f.getValue(args.Variable))
+		f.pushOperandStack(args.Value)
 		return
 	})
 }
@@ -25,7 +25,7 @@ func handlePop(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, ju
 	}
 
 	return WithArgs(f, cmdArgs, func(f *RuntimeFrame, args *Args) (jumpTarget int, jump bool) {
-		if v, ok := f.popStack(); ok {
+		if v, ok := f.popOperandStack(); ok {
 			f.setValue(args.Variable, v)
 		}
 
@@ -50,12 +50,7 @@ func handleSet(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, ju
 	}
 
 	return WithArgs(f, cmdArgs, func(f *RuntimeFrame, args *Args) (jumpTarget int, jump bool) {
-		if args.Variable >= fx.VariableOffset {
-			f.setMemory(args.Variable, args.Value)
-			return
-		}
-
-		f.Set(args.Variable, args.Value)
+		f.setValue(args.Variable, args.Value)
 		return
 	})
 }
@@ -70,7 +65,7 @@ func handleCall(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, j
 			return f.script.EndOfScript(), true
 		}
 
-		f.pushStack(f.pc + 1)
+		f.pushCallStack(f.pc + 1)
 
 		return args.Addr, true
 	})
@@ -80,7 +75,7 @@ func handleRet(f *RuntimeFrame, _ []fx.ExpressionNode) (jumpTarget int, jump boo
 	var ok bool
 
 	jump = true
-	jumpTarget, ok = f.popStack()
+	jumpTarget, ok = f.popCallStack()
 
 	if !ok {
 		jumpTarget = f.script.EndOfScript()

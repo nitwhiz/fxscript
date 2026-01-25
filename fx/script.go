@@ -1,5 +1,7 @@
 package fx
 
+import "fmt"
+
 const VariableOffset = 1024 * 16
 
 type Script struct {
@@ -36,8 +38,8 @@ func (s *Script) addSymbol(label string, addr *AddressNode) {
 }
 
 func (s *Script) String() (str string) {
-	for _, cmd := range s.commands {
-		str += cmd.String() + "\n"
+	for pc, cmd := range s.commands {
+		str += fmt.Sprintf("%04d: %s\n", pc, cmd.String())
 	}
 
 	return str

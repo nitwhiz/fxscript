@@ -5,9 +5,10 @@ import (
 )
 
 type RuntimeConfig struct {
-	UserCommands []*Command
-	Identifiers  fx.IdentifierTable
-	StackSize    int
+	UserCommands     []*Command
+	Identifiers      fx.IdentifierTable
+	CallStackSize    int
+	OperandStackSize int
 }
 
 func (r *RuntimeConfig) ParserConfig() *fx.ParserConfig {

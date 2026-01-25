@@ -12,8 +12,11 @@ type RuntimeFrame struct {
 
 	pc int
 
-	sp    int
-	stack []int
+	callStackPointer int
+	callStack        []int
+
+	operandStackPointer int
+	operandStack        []int
 }
 
 func (f *RuntimeFrame) setValue(identifier fx.Identifier, value int) {
@@ -33,18 +36,32 @@ func (f *RuntimeFrame) getValue(identifier fx.Identifier) (value int) {
 	return f.Environment.Get(identifier)
 }
 
-func (f *RuntimeFrame) pushStack(v int) {
-	f.stack[f.sp] = v
-	f.sp++
+func (f *RuntimeFrame) pushCallStack(v int) {
+	f.callStack[f.callStackPointer] = v
+	f.callStackPointer++
 }
 
-func (f *RuntimeFrame) popStack() (int, bool) {
-	if f.sp == 0 {
+func (f *RuntimeFrame) popCallStack() (int, bool) {
+	if f.callStackPointer == 0 {
 		return 0, false
 	}
 
-	f.sp--
-	return f.stack[f.sp], true
+	f.callStackPointer--
+	return f.callStack[f.callStackPointer], true
+}
+
+func (f *RuntimeFrame) pushOperandStack(v int) {
+	f.operandStack[f.operandStackPointer] = v
+	f.operandStackPointer++
+}
+
+func (f *RuntimeFrame) popOperandStack() (int, bool) {
+	if f.operandStackPointer == 0 {
+		return 0, false
+	}
+
+	f.operandStackPointer--
+	return f.operandStack[f.operandStackPointer], true
 }
 
 func (f *RuntimeFrame) ExecuteCommand(cmd *fx.CommandNode) (pc int, jump bool, err error) {
