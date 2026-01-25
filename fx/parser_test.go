@@ -344,7 +344,7 @@ func TestParser_MacrosWithLocalLabels(t *testing.T) {
 func TestParser_Constants(t *testing.T) {
 	script := `
 		const msgHello "Hello World!"
-		const wordCount 2
+		const wordCount 2 << 1
 
 		myCmd msgHello, wordCount
 	`
@@ -354,14 +354,18 @@ func TestParser_Constants(t *testing.T) {
 	require.NoError(t, err)
 
 	expectedCommands := []*CommandNode{
-		{cmdMyCmd, []ExpressionNode{&StringNode{"Hello World!"}, &IntegerNode{2}}},
+		{cmdMyCmd, []ExpressionNode{&StringNode{"Hello World!"}, &BinaryOpNode{&IntegerNode{2}, &Token{SHL, "<<"}, &IntegerNode{1}}}},
 	}
 
 	require.Equal(t, expectedCommands, commands)
 
 	expectedConstants := map[string]ExpressionNode{
-		"msgHello":  &StringNode{"Hello World!"},
-		"wordCount": &IntegerNode{2},
+		"msgHello": &StringNode{"Hello World!"},
+		"wordCount": &BinaryOpNode{
+			Left:     &IntegerNode{2},
+			Operator: &Token{SHL, "<<"},
+			Right:    &IntegerNode{1},
+		},
 	}
 
 	require.Equal(t, expectedConstants, constants)
