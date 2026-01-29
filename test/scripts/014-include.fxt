@@ -1,0 +1,8 @@
+
+@include include.fx
+
+a42
+eval A
+
+--- EXPECT ---
+42

@@ -56,7 +56,9 @@ vmConfig := &vm.RuntimeConfig{
     },
 }
 
-script, err := fx.LoadScript([]byte("set health, 100\n"), vmConfig.ParserConfig())
+// In the `ParserConfig` call, you can provide a filesystem for @include
+// and a lookup function for @const directives.
+script, err := fx.LoadScript([]byte("set health, 100\n"), vmConfig.ParserConfig(nil, nil))
 ```
 
 ### 3. Run the Script
@@ -132,7 +134,8 @@ end:
 - `const name value`: Defines a script-level constant.
 - `var name`: Declares a script-level variable. The runtime will automatically assign an address to this variable.
 - `macro name ... endmacro`: Defines a macro. [See Macros](#macros) for details.
-- `@include "file"`: Includes another file during preprocessing.
+- `@include "file"`: Includes another file during preprocessing. Requires `fs.FS` to be provided in `ParserConfig`.
+- `@const <argument>`: Looks up a constant value using the `LookupFn` provided in `ParserConfig`. The directive is replaced with `const <argument> <value_from_lookup>`.
 
 ### Macros
 
@@ -197,7 +200,7 @@ vmConfig := &vm.RuntimeConfig{
     },
 }
 
-script, err := fx.LoadScript([]byte("myCommand\n"), vmConfig.ParserConfig())
+script, err := fx.LoadScript([]byte("myCommand\n"), vmConfig.ParserConfig(nil, nil))
 
 if err != nil {
     panic(err)

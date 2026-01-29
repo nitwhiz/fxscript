@@ -1,6 +1,8 @@
 package vm
 
 import (
+	"io/fs"
+
 	"github.com/nitwhiz/fxscript/fx"
 )
 
@@ -11,7 +13,7 @@ type RuntimeConfig struct {
 	OperandStackSize int
 }
 
-func (r *RuntimeConfig) ParserConfig() *fx.ParserConfig {
+func (r *RuntimeConfig) ParserConfig(fs fs.FS, lookupFn fx.LookupFn) *fx.ParserConfig {
 	commandTypes := fx.CommandTypeTable{}
 
 	for _, cmd := range BaseCommands {
@@ -23,6 +25,9 @@ func (r *RuntimeConfig) ParserConfig() *fx.ParserConfig {
 	}
 
 	return &fx.ParserConfig{
+		FS:       fs,
+		LookupFn: lookupFn,
+
 		CommandTypes: commandTypes,
 		Identifiers:  r.Identifiers,
 	}

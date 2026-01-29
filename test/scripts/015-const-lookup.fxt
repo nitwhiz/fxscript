@@ -1,0 +1,6 @@
+
+@const myValue
+eval myValue
+
+--- EXPECT ---
+"hello world!"

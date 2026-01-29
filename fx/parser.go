@@ -1,6 +1,7 @@
 package fx
 
 import (
+	"io/fs"
 	"strconv"
 	"strings"
 )
@@ -16,6 +17,9 @@ const (
 )
 
 type ParserConfig struct {
+	FS       fs.FS
+	LookupFn LookupFn
+
 	CommandTypes CommandTypeTable
 	Identifiers  IdentifierTable
 	BufSize      int
@@ -211,7 +215,7 @@ func (p *Parser) parseNumber(tok *Token) (expr ExpressionNode, err error) {
 
 	var val int64
 
-	if val, err = strconv.ParseInt(tok.Value, 10, 32); err != nil {
+	if val, err = strconv.ParseInt(tok.Value, 10, 64); err != nil {
 		return
 	}
 

@@ -251,6 +251,7 @@ func TestParser_Labels(t *testing.T) {
 		myCmd 1
 		loop:
 			myCmd 2
+		%_inner:
 			myCmd 3
 		end:
 			myCmd 4
@@ -269,7 +270,7 @@ func TestParser_Labels(t *testing.T) {
 
 	require.Equal(t, expectedCommands, commands)
 
-	expectedLabels := map[string]int{"loop": 1, "end": 3}
+	expectedLabels := map[string]int{"loop": 1, "loop_inner": 2, "end": 3}
 
 	require.Equal(t, expectedLabels, labels)
 

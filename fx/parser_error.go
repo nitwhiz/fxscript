@@ -105,3 +105,11 @@ type UnresolvedSymbolError struct {
 func (e *UnresolvedSymbolError) Error() string {
 	return fmt.Sprintf("unresolved symbol '%s'", e.Symbol)
 }
+
+type MissingLookupFnError struct {
+	Lookup string
+}
+
+func (e *MissingLookupFnError) Error() string {
+	return fmt.Sprintf("missing lookup function for '%s'", e.Lookup)
+}
