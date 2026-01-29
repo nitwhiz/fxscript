@@ -18,6 +18,10 @@ func NewPreprocessor(cfg *ParserConfig) *Preprocessor {
 }
 
 func (p *Preprocessor) WithFS(fs fs.FS) *Preprocessor {
+	if p.fs == fs {
+		return p
+	}
+
 	return &Preprocessor{fs, p.lookupFn}
 }
 
