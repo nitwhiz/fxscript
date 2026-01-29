@@ -3,6 +3,7 @@ package fx
 import (
 	"io"
 	"io/fs"
+	"path"
 )
 
 type LookupFn func(value string) []byte
@@ -14,6 +15,10 @@ type Preprocessor struct {
 
 func NewPreprocessor(cfg *ParserConfig) *Preprocessor {
 	return &Preprocessor{cfg.FS, cfg.LookupFn}
+}
+
+func (p *Preprocessor) WithFS(fs fs.FS) *Preprocessor {
+	return &Preprocessor{fs, p.lookupFn}
 }
 
 type PreprocessorDirective struct {
@@ -139,7 +144,17 @@ func (p *Preprocessor) process(scriptData []byte) (resultScriptData []byte, err 
 }
 
 func (p *Preprocessor) loadScriptFile(fileName string) (scriptData []byte, err error) {
-	f, err := p.fs.Open(fileName)
+	sfs := p.fs
+
+	dir := path.Dir(fileName)
+
+	if dir != "" {
+		if sfs, err = fs.Sub(sfs, dir); err != nil {
+			return
+		}
+	}
+
+	f, err := sfs.Open(path.Base(fileName))
 
 	if err != nil {
 		return
@@ -151,7 +166,7 @@ func (p *Preprocessor) loadScriptFile(fileName string) (scriptData []byte, err e
 		return
 	}
 
-	return p.process(scriptData)
+	return p.WithFS(sfs).process(scriptData)
 }
 
 func (p *Preprocessor) LoadScript(source []byte, cfg *ParserConfig) (script *Script, err error) {

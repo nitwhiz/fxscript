@@ -1,8 +1,12 @@
 
-@include include.fx
+@include include/include-01.fx
+@include include/subdir/include-02.fx
 
 a42
+eval A
+a13
 eval A
 
 --- EXPECT ---
 42
+13
