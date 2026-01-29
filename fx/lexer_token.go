@@ -45,6 +45,10 @@ func (t TokenType) String() string {
 		return "MUL"
 	case DIV:
 		return "DIV"
+	case SHL:
+		return "SHL"
+	case SHR:
+		return "SHR"
 	case LT:
 		return "LT"
 	case GT:
