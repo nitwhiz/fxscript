@@ -6,7 +6,7 @@ import (
 	"path"
 )
 
-type LookupFn func(value string) []byte
+type LookupFn func(value string) ([]byte, error)
 
 type Preprocessor struct {
 	fs       fs.FS
@@ -66,14 +66,21 @@ func (p *Preprocessor) include(scriptData []byte, directive *PreprocessorDirecti
 
 func (p *Preprocessor) constLookup(scriptData []byte, directive *PreprocessorDirective) (resultScriptData []byte, next int, size int, err error) {
 	if p.lookupFn == nil {
-		err = &SyntaxError{&MissingLookupFnError{directive.Directive}}
+		err = &MissingLookupFnError{directive.Directive}
+		return
+	}
+
+	lookupValue, err := p.lookupFn(directive.Argument)
+
+	if err != nil {
+		err = &LookupFnError{err}
 		return
 	}
 
 	var value []byte
 
 	value = append(value, "const "...)
-	value = append(value, p.lookupFn(directive.Argument)...)
+	value = append(value, lookupValue...)
 
 	resultScriptData, size, next = concat(scriptData, value, directive)
 

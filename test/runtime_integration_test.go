@@ -109,8 +109,8 @@ func TestIntegration(t *testing.T) {
 				Identifiers: identifiers,
 			}
 
-			parserConfig := rtCfg.ParserConfig(os.DirFS("scripts/"), func(v string) []byte {
-				return []byte(v + " \"hello world!\"")
+			parserConfig := rtCfg.ParserConfig(os.DirFS("scripts/"), func(v string) ([]byte, error) {
+				return []byte(v + " \"hello world!\""), nil
 			})
 
 			fxs, err := fx.LoadScript(segments[0], parserConfig)
@@ -232,8 +232,8 @@ func BenchmarkIntegration(b *testing.B) {
 				Identifiers: identifiers,
 			}
 
-			parserConfig := rtCfg.ParserConfig(nil, func(v string) []byte {
-				return []byte(v + "\"hello world!\"")
+			parserConfig := rtCfg.ParserConfig(nil, func(v string) ([]byte, error) {
+				return []byte(v + "\"hello world!\""), nil
 			})
 
 			fxs, err := fx.LoadScript(segments[0], parserConfig)

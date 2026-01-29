@@ -113,3 +113,11 @@ type MissingLookupFnError struct {
 func (e *MissingLookupFnError) Error() string {
 	return fmt.Sprintf("missing lookup function for '%s'", e.Lookup)
 }
+
+type LookupFnError struct {
+	Err error
+}
+
+func (e *LookupFnError) Error() string {
+	return fmt.Sprintf("lookup function error: %s", e.Err)
+}
