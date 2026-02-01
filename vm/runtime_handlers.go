@@ -99,3 +99,9 @@ func handleJumpIf(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int,
 		return
 	})
 }
+
+func handleExit(f *RuntimeFrame, _ []fx.ExpressionNode) (jumpTarget int, jump bool) {
+	jump = true
+	jumpTarget = f.script.EndOfScript()
+	return
+}

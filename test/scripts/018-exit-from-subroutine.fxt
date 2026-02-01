@@ -1,0 +1,21 @@
+
+set A, 42
+
+goto main
+
+func2:
+  set A, 13
+  exit
+  ret
+
+func1:
+  call func2
+  ret
+
+main:
+  eval A
+	call func1
+	eval A
+
+--- EXPECT ---
+42

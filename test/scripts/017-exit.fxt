@@ -1,0 +1,11 @@
+
+set A, 13
+eval A
+
+exit
+
+set A, 42
+eval A
+
+--- EXPECT ---
+13

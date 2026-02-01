@@ -14,6 +14,7 @@ type Command struct {
 
 var BaseCommands = []*Command{
 	{"nop", fx.CmdNop, handleNop},
+	{"exit", fx.CmdExit, handleExit},
 	{"push", fx.CmdPush, handlePush},
 	{"pop", fx.CmdPop, handlePop},
 	{"goto", fx.CmdGoto, handleGoto},

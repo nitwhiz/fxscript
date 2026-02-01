@@ -21,6 +21,7 @@ func (p *Parser) getIdentifier(name string) (Identifier, bool) {
 const (
 	CmdNone CommandType = iota
 	CmdNop
+	CmdExit
 	CmdPush
 	CmdPop
 	CmdCall
