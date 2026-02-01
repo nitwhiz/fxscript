@@ -1,0 +1,17 @@
+
+var fn
+
+set fn, updateA
+
+goto main
+
+updateA:
+  set A, 42
+  ret
+
+main:
+  call fn
+  eval A
+
+--- EXPECT ---
+42

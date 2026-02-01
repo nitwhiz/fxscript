@@ -97,7 +97,7 @@ func TestIntegration(t *testing.T) {
 
 			segments := bytes.Split(data, []byte("--- EXPECT ---\n"))
 
-			require.Len(t, segments, 2)
+			require.Len(t, segments, 2, "does the script have an EXPECT section?")
 
 			e := NewTestEnv(t)
 
