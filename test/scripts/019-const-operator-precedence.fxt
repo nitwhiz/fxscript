@@ -1,0 +1,10 @@
+
+const three 1 + 2
+
+# 1+2 should be evaluated first, as if it was in parentheses
+set A, three * 3
+
+eval A
+
+--- EXPECT ---
+9
