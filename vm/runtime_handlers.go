@@ -61,10 +61,6 @@ func handleCall(f *Frame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump boo
 	}
 
 	return WithArgs(f, cmdArgs, func(f *Frame, args *Args) (jumpTarget int, jump bool) {
-		if args.Addr == 0 {
-			return f.script.EndOfScript(), true
-		}
-
 		f.pushCallStack(f.pc + 1)
 
 		return args.Addr, true
