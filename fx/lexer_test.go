@@ -253,18 +253,18 @@ func TestLexer_Macro(t *testing.T) {
 	require.Equal(t, expectedTokens, tokens)
 }
 
-func TestLexer_Constants(t *testing.T) {
+func TestLexer_Defines(t *testing.T) {
 	script := `
-		const msgHello "Hello World!"
-		const wordCount 2
+		def msgHello "Hello World!"
+		def wordCount 2
 	`
 
 	expectedTokens := []*Token{
-		{CONST, ""},
+		{DEF, ""},
 		{IDENT, "msgHello"},
 		{STRING, "Hello World!"},
 		{NEWLINE, ""},
-		{CONST, ""},
+		{DEF, ""},
 		{IDENT, "wordCount"},
 		{NUMBER, "2"},
 		{NEWLINE, ""},

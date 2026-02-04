@@ -25,8 +25,8 @@ func (t TokenType) String() string {
 		return "IDENT"
 	case NUMBER:
 		return "NUMBER"
-	case CONST:
-		return "CONST"
+	case DEF:
+		return "DEF"
 	case VAR:
 		return "VAR"
 	case MACRO:
@@ -88,7 +88,7 @@ const (
 	IDENT
 	NUMBER
 
-	CONST
+	DEF
 	VAR
 
 	MACRO
@@ -149,7 +149,7 @@ func (t *Token) String() string {
 
 var identKeywords = map[string]TokenType{
 	"var":      VAR,
-	"const":    CONST,
+	"def":      DEF,
 	"macro":    MACRO,
 	"endmacro": ENDMACRO,
 }

@@ -14,7 +14,7 @@ const (
 	cmdMyCmd = UserCommandOffset + iota
 )
 
-func parse(script string) (commands []*CommandNode, constants map[string]ExpressionNode, labels map[string]int, macros map[string]*Macro, err error) {
+func parse(script string) (commands []*CommandNode, defines map[string]ExpressionNode, labels map[string]int, macros map[string]*Macro, err error) {
 	l := NewLexer([]byte(script))
 	p := NewParser(l, &ParserConfig{
 		CommandTypes: CommandTypeTable{
@@ -31,13 +31,13 @@ func parse(script string) (commands []*CommandNode, constants map[string]Express
 		return
 	}
 
-	return s.Commands(), s.constants, s.labels, s.macros, nil
+	return s.Commands(), s.defines, s.labels, s.macros, nil
 }
 
 func TestParser_Ident(t *testing.T) {
 	script := "myCmd A\n"
 
-	commands, constants, labels, macros, err := parse(script)
+	commands, defines, labels, macros, err := parse(script)
 
 	require.NoError(t, err)
 
@@ -52,7 +52,7 @@ func TestParser_Ident(t *testing.T) {
 
 	require.Equal(t, expectedCommands, commands)
 
-	require.Empty(t, constants)
+	require.Empty(t, defines)
 	require.Empty(t, labels)
 	require.Empty(t, macros)
 }
@@ -60,7 +60,7 @@ func TestParser_Ident(t *testing.T) {
 func TestParser_Numbers(t *testing.T) {
 	script := "myCmd 42, -42, 13.37, -13.37, +13\n"
 
-	commands, constants, labels, macros, err := parse(script)
+	commands, defines, labels, macros, err := parse(script)
 
 	require.NoError(t, err)
 
@@ -76,7 +76,7 @@ func TestParser_Numbers(t *testing.T) {
 
 	require.Equal(t, expectedCommands, commands)
 
-	require.Empty(t, constants)
+	require.Empty(t, defines)
 	require.Empty(t, labels)
 	require.Empty(t, macros)
 }
@@ -84,7 +84,7 @@ func TestParser_Numbers(t *testing.T) {
 func TestParser_OperatorsAndNumbers(t *testing.T) {
 	script := "myCmd +42 + +13 - 37 * -72 / 42\n"
 
-	commands, constants, labels, macros, err := parse(script)
+	commands, defines, labels, macros, err := parse(script)
 
 	require.NoError(t, err)
 
@@ -121,7 +121,7 @@ func TestParser_OperatorsAndNumbers(t *testing.T) {
 
 	require.Equal(t, expectedCommands, commands)
 
-	require.Empty(t, constants)
+	require.Empty(t, defines)
 	require.Empty(t, labels)
 	require.Empty(t, macros)
 }
@@ -129,7 +129,7 @@ func TestParser_OperatorsAndNumbers(t *testing.T) {
 func TestParser_OperatorsWithParens(t *testing.T) {
 	script := "myCmd (+42 + 13) - (37 * (-72 / 42 ))\n"
 
-	commands, constants, labels, macros, err := parse(script)
+	commands, defines, labels, macros, err := parse(script)
 
 	require.NoError(t, err)
 
@@ -163,7 +163,7 @@ func TestParser_OperatorsWithParens(t *testing.T) {
 
 	require.Equal(t, expectedCommands, commands)
 
-	require.Empty(t, constants)
+	require.Empty(t, defines)
 	require.Empty(t, labels)
 	require.Empty(t, macros)
 }
@@ -171,7 +171,7 @@ func TestParser_OperatorsWithParens(t *testing.T) {
 func TestParser_InvOperator(t *testing.T) {
 	script := "myCmd ^42, ^-13\n"
 
-	commands, constants, labels, macros, err := parse(script)
+	commands, defines, labels, macros, err := parse(script)
 
 	require.NoError(t, err)
 
@@ -184,7 +184,7 @@ func TestParser_InvOperator(t *testing.T) {
 
 	require.Equal(t, expectedCommands, commands)
 
-	require.Empty(t, constants)
+	require.Empty(t, defines)
 	require.Empty(t, labels)
 	require.Empty(t, macros)
 }
@@ -192,7 +192,7 @@ func TestParser_InvOperator(t *testing.T) {
 func TestParser_AddrOfOperator(t *testing.T) {
 	script := "myCmd &42, &-13\n"
 
-	commands, constants, labels, macros, err := parse(script)
+	commands, defines, labels, macros, err := parse(script)
 
 	require.NoError(t, err)
 
@@ -205,7 +205,7 @@ func TestParser_AddrOfOperator(t *testing.T) {
 
 	require.Equal(t, expectedCommands, commands)
 
-	require.Empty(t, constants)
+	require.Empty(t, defines)
 	require.Empty(t, labels)
 	require.Empty(t, macros)
 }
@@ -213,7 +213,7 @@ func TestParser_AddrOfOperator(t *testing.T) {
 func TestParser_AndOperator(t *testing.T) {
 	script := "myCmd 4 & 16\n"
 
-	commands, constants, labels, macros, err := parse(script)
+	commands, defines, labels, macros, err := parse(script)
 
 	require.NoError(t, err)
 
@@ -223,7 +223,7 @@ func TestParser_AndOperator(t *testing.T) {
 
 	require.Equal(t, expectedCommands, commands)
 
-	require.Empty(t, constants)
+	require.Empty(t, defines)
 	require.Empty(t, labels)
 	require.Empty(t, macros)
 }
@@ -231,7 +231,7 @@ func TestParser_AndOperator(t *testing.T) {
 func TestParser_OrOperator(t *testing.T) {
 	script := "myCmd 4 | 16\n"
 
-	commands, constants, labels, macros, err := parse(script)
+	commands, defines, labels, macros, err := parse(script)
 
 	require.NoError(t, err)
 
@@ -241,7 +241,7 @@ func TestParser_OrOperator(t *testing.T) {
 
 	require.Equal(t, expectedCommands, commands)
 
-	require.Empty(t, constants)
+	require.Empty(t, defines)
 	require.Empty(t, labels)
 	require.Empty(t, macros)
 }
@@ -257,7 +257,7 @@ func TestParser_Labels(t *testing.T) {
 			myCmd 4
 	`
 
-	commands, constants, labels, macros, err := parse(script)
+	commands, defines, labels, macros, err := parse(script)
 
 	require.NoError(t, err)
 
@@ -274,7 +274,7 @@ func TestParser_Labels(t *testing.T) {
 
 	require.Equal(t, expectedLabels, labels)
 
-	require.Empty(t, constants)
+	require.Empty(t, defines)
 	require.Empty(t, macros)
 }
 
@@ -294,7 +294,7 @@ func TestParser_Macros(t *testing.T) {
 		myCmd 3
 	`
 
-	commands, constants, labels, macros, err := parse(script)
+	commands, defines, labels, macros, err := parse(script)
 
 	require.NoError(t, err)
 
@@ -309,7 +309,7 @@ func TestParser_Macros(t *testing.T) {
 
 	require.Len(t, macros, 2)
 
-	require.Empty(t, constants)
+	require.Empty(t, defines)
 	require.Empty(t, labels)
 }
 
@@ -325,7 +325,7 @@ func TestParser_MacrosWithLocalLabels(t *testing.T) {
 		mLoop
 	`
 
-	commands, constants, labels, macros, err := parse(script)
+	commands, defines, labels, macros, err := parse(script)
 
 	require.NoError(t, err)
 
@@ -337,20 +337,20 @@ func TestParser_MacrosWithLocalLabels(t *testing.T) {
 	}
 
 	require.Equal(t, expectedCommands, commands)
-	require.Len(t, constants, 0)
+	require.Len(t, defines, 0)
 	require.Len(t, labels, 2)
 	require.Len(t, macros, 1)
 }
 
-func TestParser_Constants(t *testing.T) {
+func TestParser_Defines(t *testing.T) {
 	script := `
-		const msgHello "Hello World!"
-		const wordCount 2 << 1
+		def msgHello "Hello World!"
+		def wordCount 2 << 1
 
 		myCmd msgHello, wordCount
 	`
 
-	commands, constants, labels, macros, err := parse(script)
+	commands, defines, labels, macros, err := parse(script)
 
 	require.NoError(t, err)
 
@@ -360,7 +360,7 @@ func TestParser_Constants(t *testing.T) {
 
 	require.Equal(t, expectedCommands, commands)
 
-	expectedConstants := map[string]ExpressionNode{
+	expecteddefines := map[string]ExpressionNode{
 		"msgHello": &StringNode{"Hello World!"},
 		"wordCount": &BinaryOpNode{
 			Left:     &IntegerNode{2},
@@ -369,7 +369,7 @@ func TestParser_Constants(t *testing.T) {
 		},
 	}
 
-	require.Equal(t, expectedConstants, constants)
+	require.Equal(t, expecteddefines, defines)
 
 	require.Empty(t, labels)
 	require.Empty(t, macros)
@@ -381,7 +381,7 @@ func TestParser_Variables(t *testing.T) {
 		myCmd myVar 42
 	`
 
-	commands, constants, labels, macros, err := parse(script)
+	commands, defines, labels, macros, err := parse(script)
 
 	require.NoError(t, err)
 
@@ -391,7 +391,7 @@ func TestParser_Variables(t *testing.T) {
 
 	require.Equal(t, expectedCommands, commands)
 
-	require.Empty(t, constants)
+	require.Empty(t, defines)
 	require.Empty(t, labels)
 	require.Empty(t, macros)
 }
@@ -402,7 +402,7 @@ func TestParser_Strings(t *testing.T) {
 		myCmd "Strings can .contain all @sorts of -42.1337 # characters"
 	`
 
-	commands, constants, labels, macros, err := parse(script)
+	commands, defines, labels, macros, err := parse(script)
 
 	require.NoError(t, err)
 
@@ -413,7 +413,7 @@ func TestParser_Strings(t *testing.T) {
 
 	require.Equal(t, expectedCommands, commands)
 
-	require.Empty(t, constants)
+	require.Empty(t, defines)
 	require.Empty(t, labels)
 	require.Empty(t, macros)
 }

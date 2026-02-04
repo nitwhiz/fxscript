@@ -1,5 +1,5 @@
 
-@const myValue
+@def myValue
 eval myValue
 
 --- EXPECT ---

@@ -149,7 +149,7 @@ func (p *Parser) parseLabel(script *Script, tok *Token) (expr ExpressionNode, er
 func (p *Parser) resolveIdent(script *Script, tok *Token) (expr ExpressionNode, err error) {
 	var ok bool
 
-	if expr, ok = script.constants[tok.Value]; ok {
+	if expr, ok = script.defines[tok.Value]; ok {
 		return
 	}
 
@@ -329,7 +329,7 @@ func contains(ops []TokenType, tokType TokenType) bool {
 	return false
 }
 
-func (p *Parser) parseConst(script *Script) (err error) {
+func (p *Parser) parseDefine(script *Script) (err error) {
 	if _, err = p.advance(); err != nil {
 		return
 	}
@@ -340,7 +340,7 @@ func (p *Parser) parseConst(script *Script) (err error) {
 		return
 	}
 
-	script.constants[nameIdent.Value], err = p.parseExpression(script)
+	script.defines[nameIdent.Value], err = p.parseExpression(script)
 
 	return
 }
@@ -548,8 +548,8 @@ func (p *Parser) parseNextNode(script *Script, end TokenType) (ok bool, err erro
 		if err = p.parseMacro(script); err != nil {
 			return
 		}
-	case CONST:
-		if err = p.parseConst(script); err != nil {
+	case DEF:
+		if err = p.parseDefine(script); err != nil {
 			return
 		}
 	case VAR:
@@ -565,7 +565,7 @@ func (p *Parser) parseNextNode(script *Script, end TokenType) (ok bool, err erro
 			return
 		}
 	default:
-		err = &SyntaxError{&UnexpectedTokenError{[]TokenType{end, MACRO, CONST, IDENT, NEWLINE}, tok}}
+		err = &SyntaxError{&UnexpectedTokenError{[]TokenType{end, MACRO, DEF, IDENT, NEWLINE}, tok}}
 		return
 	}
 

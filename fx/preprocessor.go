@@ -64,7 +64,7 @@ func (p *Preprocessor) include(scriptData []byte, directive *PreprocessorDirecti
 	return
 }
 
-func (p *Preprocessor) constLookup(scriptData []byte, directive *PreprocessorDirective) (resultScriptData []byte, next int, size int, err error) {
+func (p *Preprocessor) defineLookup(scriptData []byte, directive *PreprocessorDirective) (resultScriptData []byte, next int, size int, err error) {
 	if p.lookupFn == nil {
 		err = &MissingLookupFnError{directive.Directive}
 		return
@@ -79,7 +79,7 @@ func (p *Preprocessor) constLookup(scriptData []byte, directive *PreprocessorDir
 
 	var value []byte
 
-	value = append(value, "const "...)
+	value = append(value, "def "...)
 	value = append(value, lookupValue...)
 
 	resultScriptData, size, next = concat(scriptData, value, directive)
@@ -94,8 +94,8 @@ func (p *Preprocessor) handleDirective(scriptData []byte, directive *Preprocesso
 			return
 		}
 		break
-	case "@const":
-		if resultScriptData, next, size, err = p.constLookup(scriptData, directive); err != nil {
+	case "@def":
+		if resultScriptData, next, size, err = p.defineLookup(scriptData, directive); err != nil {
 			return
 		}
 		break

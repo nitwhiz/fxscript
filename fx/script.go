@@ -9,7 +9,7 @@ type Script struct {
 
 	labels    map[string]int
 	symbols   map[string][]*AddressNode
-	constants map[string]ExpressionNode
+	defines   map[string]ExpressionNode
 	macros    map[string]*Macro
 	variables map[string]int
 }
@@ -19,7 +19,7 @@ func newScript() *Script {
 		commands:  make([]*CommandNode, 0),
 		labels:    make(map[string]int),
 		symbols:   make(map[string][]*AddressNode),
-		constants: make(map[string]ExpressionNode),
+		defines:   make(map[string]ExpressionNode),
 		macros:    make(map[string]*Macro),
 		variables: make(map[string]int),
 	}
@@ -59,8 +59,8 @@ func (s *Script) EndOfScript() (pc int) {
 	return len(s.commands) + 1
 }
 
-func (s *Script) Const(name string) (v any, ok bool) {
-	v, ok = s.constants[name]
+func (s *Script) Define(name string) (v any, ok bool) {
+	v, ok = s.defines[name]
 	return
 }
 

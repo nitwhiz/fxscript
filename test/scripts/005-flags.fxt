@@ -1,5 +1,5 @@
 
-const flag 1 << 4
+def flag 1 << 4
 
 set A, 1
 set A, A | flag

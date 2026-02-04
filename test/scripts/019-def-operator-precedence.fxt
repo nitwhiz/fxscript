@@ -1,5 +1,5 @@
 
-const three 1 + 2
+def three 1 + 2
 
 # 1+2 should be evaluated first, as if it was in parentheses
 set A, three * 3
