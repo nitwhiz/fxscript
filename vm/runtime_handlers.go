@@ -4,27 +4,27 @@ import (
 	"github.com/nitwhiz/fxscript/fx"
 )
 
-func handleNop(*RuntimeFrame, []fx.ExpressionNode) (jumpTarget int, jump bool) {
+func handleNop(*Frame, []fx.ExpressionNode) (jumpTarget int, jump bool) {
 	return
 }
 
-func handlePush(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump bool) {
+func handlePush(f *Frame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump bool) {
 	type Args struct {
 		Value int `arg:""`
 	}
 
-	return WithArgs(f, cmdArgs, func(f *RuntimeFrame, args *Args) (jumpTarget int, jump bool) {
+	return WithArgs(f, cmdArgs, func(f *Frame, args *Args) (jumpTarget int, jump bool) {
 		f.pushOperandStack(args.Value)
 		return
 	})
 }
 
-func handlePop(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump bool) {
+func handlePop(f *Frame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump bool) {
 	type Args struct {
 		Variable fx.Identifier `arg:""`
 	}
 
-	return WithArgs(f, cmdArgs, func(f *RuntimeFrame, args *Args) (jumpTarget int, jump bool) {
+	return WithArgs(f, cmdArgs, func(f *Frame, args *Args) (jumpTarget int, jump bool) {
 		if v, ok := f.popOperandStack(); ok {
 			f.setValue(args.Variable, v)
 		}
@@ -33,34 +33,34 @@ func handlePop(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, ju
 	})
 }
 
-func handleGoto(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump bool) {
+func handleGoto(f *Frame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump bool) {
 	type Args struct {
 		JumpTarget int `arg:""`
 	}
 
-	return WithArgs(f, cmdArgs, func(f *RuntimeFrame, args *Args) (jumpTarget int, jump bool) {
+	return WithArgs(f, cmdArgs, func(f *Frame, args *Args) (jumpTarget int, jump bool) {
 		return args.JumpTarget, true
 	})
 }
 
-func handleSet(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump bool) {
+func handleSet(f *Frame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump bool) {
 	type Args struct {
 		Variable fx.Identifier `arg:""`
 		Value    int           `arg:""`
 	}
 
-	return WithArgs(f, cmdArgs, func(f *RuntimeFrame, args *Args) (jumpTarget int, jump bool) {
+	return WithArgs(f, cmdArgs, func(f *Frame, args *Args) (jumpTarget int, jump bool) {
 		f.setValue(args.Variable, args.Value)
 		return
 	})
 }
 
-func handleCall(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump bool) {
+func handleCall(f *Frame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump bool) {
 	type Args struct {
 		Addr int `arg:""`
 	}
 
-	return WithArgs(f, cmdArgs, func(f *RuntimeFrame, args *Args) (jumpTarget int, jump bool) {
+	return WithArgs(f, cmdArgs, func(f *Frame, args *Args) (jumpTarget int, jump bool) {
 		if args.Addr == 0 {
 			return f.script.EndOfScript(), true
 		}
@@ -71,7 +71,7 @@ func handleCall(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, j
 	})
 }
 
-func handleRet(f *RuntimeFrame, _ []fx.ExpressionNode) (jumpTarget int, jump bool) {
+func handleRet(f *Frame, _ []fx.ExpressionNode) (jumpTarget int, jump bool) {
 	var ok bool
 
 	jump = true
@@ -84,13 +84,13 @@ func handleRet(f *RuntimeFrame, _ []fx.ExpressionNode) (jumpTarget int, jump boo
 	return
 }
 
-func handleJumpIf(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump bool) {
+func handleJumpIf(f *Frame, cmdArgs []fx.ExpressionNode) (jumpTarget int, jump bool) {
 	type Args struct {
 		Condition  int `arg:""`
 		JumpTarget int `arg:""`
 	}
 
-	return WithArgs(f, cmdArgs, func(f *RuntimeFrame, args *Args) (jumpTarget int, jump bool) {
+	return WithArgs(f, cmdArgs, func(f *Frame, args *Args) (jumpTarget int, jump bool) {
 		if args.Condition != 0 {
 			jumpTarget = args.JumpTarget
 			jump = true
@@ -100,7 +100,7 @@ func handleJumpIf(f *RuntimeFrame, cmdArgs []fx.ExpressionNode) (jumpTarget int,
 	})
 }
 
-func handleExit(f *RuntimeFrame, _ []fx.ExpressionNode) (jumpTarget int, jump bool) {
+func handleExit(f *Frame, _ []fx.ExpressionNode) (jumpTarget int, jump bool) {
 	jump = true
 	jumpTarget = f.script.EndOfScript()
 	return

@@ -36,7 +36,7 @@ func (e *ArgumentTypeError) Unwrap() error {
 	return e.Err
 }
 
-func (f *RuntimeFrame) unmarshalArgs(argv []fx.ExpressionNode, v any) (err error) {
+func (f *Frame) unmarshalArgs(argv []fx.ExpressionNode, v any) (err error) {
 	typ := reflect.TypeOf(v).Elem()
 	val := reflect.ValueOf(v).Elem()
 
@@ -136,10 +136,12 @@ func (f *RuntimeFrame) unmarshalArgs(argv []fx.ExpressionNode, v any) (err error
 		}
 	}
 
+	f.postUnmarshalArgs(v)
+
 	return
 }
 
-func WithArgs[ArgsType any](f *RuntimeFrame, cmdArgs []fx.ExpressionNode, h func(f *RuntimeFrame, args *ArgsType) (jumpTarget int, jump bool)) (jumpTarget int, jump bool) {
+func WithArgs[ArgsType any](f *Frame, cmdArgs []fx.ExpressionNode, h func(f *Frame, args *ArgsType) (jumpTarget int, jump bool)) (jumpTarget int, jump bool) {
 	args := new(ArgsType)
 
 	if err := f.unmarshalArgs(cmdArgs, args); err != nil {

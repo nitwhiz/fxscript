@@ -70,7 +70,27 @@ myEnv := &MyEnvironment{values: make(map[fx.Identifier]int)}
 r.Start(0, myEnv)
 ```
 
-### 4. Call a Label from Go
+### 4. Hooks
+
+You can use hooks to intercept command execution or argument unmarshalling.
+
+```go
+vmConfig := &vm.RuntimeConfig{
+    Hooks: &vm.Hooks{
+        PreExecute: func(cmd *fx.CommandNode) {
+            fmt.Printf("Executing command: %s\n", cmd.Name)
+        },
+        PostExecute: func(cmd *fx.CommandNode, jumpPc int, jump bool) {
+            fmt.Printf("Command executed: %s\n", cmd.Name)
+        },
+        PostUnmarshalArgs: func(args any) {
+            fmt.Printf("Arguments unmarshalled: %+v\n", args)
+        },
+    },
+}
+```
+
+### 6. Call a Label from Go
 
 You can also start execution from a specific label in your script:
 
@@ -191,8 +211,8 @@ vmConfig := &vm.RuntimeConfig{
     UserCommands: []*vm.Command{
         {
             Name: "myCommand",
-            Typ:  CmdMyCustom,
-            Handler: func(f *vm.RuntimeFrame, args []fx.ExpressionNode) (jumpTarget int, jump bool) {
+            Type:  CmdMyCustom,
+            Handler: func(f *vm.Frame, args []fx.ExpressionNode) (jumpTarget int, jump bool) {
                 fmt.Println("Custom command executed!")
                 return
             },
@@ -217,7 +237,7 @@ r.Start(0, myEnv)
 The `Handler` function for a custom command has the following signature:
 
 ```go
-func(f *vm.RuntimeFrame, args []fx.ExpressionNode) (jumpTarget int, jump bool)
+func(f *vm.Frame, args []fx.ExpressionNode) (jumpTarget int, jump bool)
 ```
 
 - `jumpTarget`: The new Program Counter (PC) value if a jump should occur.
@@ -236,9 +256,9 @@ type MyArgs struct {
 
 r.RegisterCommands([]*vm.Command{
     {
-        Typ: CmdMyCustom,
-        Handler: func(f *vm.RuntimeFrame, args []fx.ExpressionNode) (jumpTarget int, jump bool) {
-            return vm.WithArgs(f, args, func(f *vm.RuntimeFrame, a *MyArgs) (jumpTarget int, jump bool) {
+        Type: CmdMyCustom,
+        Handler: func(f *vm.Frame, args []fx.ExpressionNode) (jumpTarget int, jump bool) {
+            return vm.WithArgs(f, args, func(f *vm.Frame, a *MyArgs) (jumpTarget int, jump bool) {
                 // a.Target is the fx.Identifier (the address)
                 // a.Value is the evaluated integer result
                 f.Set(a.Target, a.Value * 2)

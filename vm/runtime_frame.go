@@ -4,9 +4,9 @@ import (
 	"github.com/nitwhiz/fxscript/fx"
 )
 
-var _ Environment = (*RuntimeFrame)(nil)
+var _ Environment = (*Frame)(nil)
 
-type RuntimeFrame struct {
+type Frame struct {
 	Environment
 	*Runtime
 
@@ -19,7 +19,7 @@ type RuntimeFrame struct {
 	operandStack        []int
 }
 
-func (f *RuntimeFrame) setValue(identifier fx.Identifier, value int) {
+func (f *Frame) setValue(identifier fx.Identifier, value int) {
 	if identifier >= fx.VariableOffset {
 		f.setMemory(identifier, value)
 		return
@@ -28,7 +28,7 @@ func (f *RuntimeFrame) setValue(identifier fx.Identifier, value int) {
 	f.Environment.Set(identifier, value)
 }
 
-func (f *RuntimeFrame) getValue(identifier fx.Identifier) (value int) {
+func (f *Frame) getValue(identifier fx.Identifier) (value int) {
 	if identifier >= fx.VariableOffset {
 		return f.getMemory(identifier)
 	}
@@ -36,12 +36,12 @@ func (f *RuntimeFrame) getValue(identifier fx.Identifier) (value int) {
 	return f.Environment.Get(identifier)
 }
 
-func (f *RuntimeFrame) pushCallStack(v int) {
+func (f *Frame) pushCallStack(v int) {
 	f.callStack[f.callStackPointer] = v
 	f.callStackPointer++
 }
 
-func (f *RuntimeFrame) popCallStack() (int, bool) {
+func (f *Frame) popCallStack() (int, bool) {
 	if f.callStackPointer == 0 {
 		return 0, false
 	}
@@ -50,12 +50,12 @@ func (f *RuntimeFrame) popCallStack() (int, bool) {
 	return f.callStack[f.callStackPointer], true
 }
 
-func (f *RuntimeFrame) pushOperandStack(v int) {
+func (f *Frame) pushOperandStack(v int) {
 	f.operandStack[f.operandStackPointer] = v
 	f.operandStackPointer++
 }
 
-func (f *RuntimeFrame) popOperandStack() (int, bool) {
+func (f *Frame) popOperandStack() (int, bool) {
 	if f.operandStackPointer == 0 {
 		return 0, false
 	}
@@ -64,7 +64,12 @@ func (f *RuntimeFrame) popOperandStack() (int, bool) {
 	return f.operandStack[f.operandStackPointer], true
 }
 
-func (f *RuntimeFrame) ExecuteCommand(cmd *fx.CommandNode) (pc int, jump bool, err error) {
+func (f *Frame) ExecuteCommand(cmd *fx.CommandNode) (pc int, jump bool, err error) {
+	f.preExecute(cmd)
+
 	pc, jump = f.handlers[cmd.Type](f, cmd.Args)
+
+	f.postExecute(cmd, pc, jump)
+
 	return
 }

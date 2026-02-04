@@ -4,11 +4,11 @@ import (
 	"github.com/nitwhiz/fxscript/fx"
 )
 
-type CommandHandler func(f *RuntimeFrame, args []fx.ExpressionNode) (jumpTarget int, jump bool)
+type CommandHandler func(f *Frame, args []fx.ExpressionNode) (jumpTarget int, jump bool)
 
 type Command struct {
 	Name    string
-	Typ     fx.CommandType
+	Type    fx.CommandType
 	Handler CommandHandler
 }
 
@@ -25,13 +25,13 @@ var BaseCommands = []*Command{
 }
 
 func (r *Runtime) registerCommand(cmd *Command) {
-	if int(cmd.Typ) >= len(r.handlers) {
-		newHandlers := make([]CommandHandler, int(cmd.Typ)+1)
+	if int(cmd.Type) >= len(r.handlers) {
+		newHandlers := make([]CommandHandler, int(cmd.Type)+1)
 		copy(newHandlers, r.handlers)
 		r.handlers = newHandlers
 	}
 
-	r.handlers[cmd.Typ] = cmd.Handler
+	r.handlers[cmd.Type] = cmd.Handler
 }
 
 func (r *Runtime) RegisterCommands(commands []*Command) {

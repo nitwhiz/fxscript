@@ -14,6 +14,7 @@ type Environment interface {
 }
 
 type Runtime struct {
+	hooks            *Hooks
 	script           *fx.Script
 	handlers         []CommandHandler
 	callStackSize    int
@@ -35,6 +36,7 @@ func NewRuntime(s *fx.Script, cfg *RuntimeConfig) *Runtime {
 	}
 
 	r := Runtime{
+		hooks:            cfg.Hooks,
 		script:           s,
 		handlers:         make([]CommandHandler, 0, fx.UserCommandOffset),
 		callStackSize:    callStackSize,
@@ -70,8 +72,8 @@ func (r *Runtime) getMemory(variable fx.Identifier) (value int) {
 	return
 }
 
-func (r *Runtime) NewFrame(pc int, env Environment) *RuntimeFrame {
-	return &RuntimeFrame{
+func (r *Runtime) NewFrame(pc int, env Environment) *Frame {
+	return &Frame{
 		Environment:  env,
 		Runtime:      r,
 		pc:           pc,

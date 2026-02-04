@@ -2,6 +2,7 @@ package test
 
 import (
 	"bytes"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -28,6 +29,17 @@ const (
 	cmdEval = fx.UserCommandOffset + iota
 	cmdBreakpoint
 )
+
+var commandNames = map[fx.CommandType]string{}
+
+func init() {
+	for _, cmd := range vm.BaseCommands {
+		commandNames[cmd.Type] = cmd.Name
+	}
+
+	commandNames[cmdEval] = "eval"
+	commandNames[cmdBreakpoint] = "break"
+}
 
 type TestEnv struct {
 	t testing.TB
@@ -57,7 +69,7 @@ func (env *TestEnv) HandleError(err error) {
 	env.t.Fatal(err)
 }
 
-func (env *TestEnv) handleEval(f *vm.RuntimeFrame, args []fx.ExpressionNode) (jumpTarget int, jump bool) {
+func (env *TestEnv) handleEval(f *vm.Frame, args []fx.ExpressionNode) (jumpTarget int, jump bool) {
 	values := make([]any, len(args))
 
 	var err error
@@ -73,7 +85,7 @@ func (env *TestEnv) handleEval(f *vm.RuntimeFrame, args []fx.ExpressionNode) (ju
 	return
 }
 
-func (env *TestEnv) handleBreak(f *vm.RuntimeFrame, args []fx.ExpressionNode) (jumpTarget int, jump bool) {
+func (env *TestEnv) handleBreak(f *vm.Frame, args []fx.ExpressionNode) (jumpTarget int, jump bool) {
 	runtime.Breakpoint()
 	return
 }
@@ -107,6 +119,14 @@ func TestIntegration(t *testing.T) {
 					{"break", cmdBreakpoint, e.handleBreak},
 				},
 				Identifiers: identifiers,
+				Hooks: &vm.Hooks{
+					PreExecute: func(cmd *fx.CommandNode) {
+						slog.Info("EXEC", slog.String("name", commandNames[cmd.Type]), slog.String("cmd", cmd.String()))
+					},
+					PostUnmarshalArgs: func(args any) {
+						slog.Info("ARGS", slog.Any("args", args))
+					},
+				},
 			}
 
 			parserConfig := rtCfg.ParserConfig(os.DirFS("scripts/"), func(v string) ([]byte, error) {

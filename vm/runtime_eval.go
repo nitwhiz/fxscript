@@ -155,7 +155,7 @@ func evalOp[T numeric](op fx.TokenType, a, b T) (v T, err error) {
 	return
 }
 
-func (f *RuntimeFrame) evalPointer(n *fx.UnaryOpNode) (v any, ok bool, err error) {
+func (f *Frame) evalPointer(n *fx.UnaryOpNode) (v any, ok bool, err error) {
 	switch n.Operator.Type {
 	case fx.AND:
 		switch e := n.Expr.(type) {
@@ -221,7 +221,7 @@ func (f *RuntimeFrame) evalPointer(n *fx.UnaryOpNode) (v any, ok bool, err error
 	return
 }
 
-func (f *RuntimeFrame) evalUnaryOp(n *fx.UnaryOpNode) (v any, err error) {
+func (f *Frame) evalUnaryOp(n *fx.UnaryOpNode) (v any, err error) {
 	var ok bool
 
 	v, ok, err = f.evalPointer(n)
@@ -271,7 +271,7 @@ func (f *RuntimeFrame) evalUnaryOp(n *fx.UnaryOpNode) (v any, err error) {
 	return
 }
 
-func (f *RuntimeFrame) evalBinaryOp(n *fx.BinaryOpNode) (result any, err error) {
+func (f *Frame) evalBinaryOp(n *fx.BinaryOpNode) (result any, err error) {
 	result = 0
 
 	var left, right any
@@ -337,7 +337,7 @@ func (f *RuntimeFrame) evalBinaryOp(n *fx.BinaryOpNode) (result any, err error) 
 	return
 }
 
-func (f *RuntimeFrame) Eval(node fx.ExpressionNode) (v any, err error) {
+func (f *Frame) Eval(node fx.ExpressionNode) (v any, err error) {
 	switch n := node.(type) {
 	case *fx.BinaryOpNode:
 		v, err = f.evalBinaryOp(n)

@@ -54,6 +54,10 @@ func (n *BinaryOpNode) exprNode()   {}
 func (n *UnaryOpNode) exprNode()    {}
 
 func (n *CommandNode) String() string {
+	if len(n.Args) == 0 {
+		return fmt.Sprintf("CMD(%02d)", n.Type)
+	}
+
 	args := make([]string, len(n.Args))
 
 	for i, arg := range n.Args {
