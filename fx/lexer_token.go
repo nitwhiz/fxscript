@@ -11,6 +11,18 @@ type SourceInfo struct {
 	Column   int
 }
 
+func (s *SourceInfo) String() string {
+	var fName string
+
+	if s.Filename == "" {
+		fName = "<script>"
+	} else {
+		fName = s.Filename
+	}
+
+	return fmt.Sprintf("%s:%d:%d", fName, s.Line, s.Column)
+}
+
 type TokenType uint
 
 func (t TokenType) String() string {

@@ -89,11 +89,11 @@ func (m *Macro) Body(args [][]*Token) (*TokenSlice, error) {
 			argIdx, ok := m.args[argName]
 
 			if !ok {
-				return nil, &SyntaxError{&UnknownMacroArgumentError{argName}}
+				return nil, &SyntaxError{m.body.tokens[i].SourceInfo, &UnknownMacroArgumentError{argName}}
 			}
 
 			if len(args) <= argIdx {
-				return nil, &SyntaxError{&MissingMacroArgumentError{argName}}
+				return nil, &SyntaxError{m.body.tokens[i].SourceInfo, &MissingMacroArgumentError{argName}}
 			}
 
 			tokens = append(tokens, args[argIdx]...)

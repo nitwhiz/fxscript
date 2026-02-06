@@ -48,14 +48,14 @@ func (p *Parser) parsePreprocessorDirective() (err error) {
 	segments := strings.SplitN(tok.Value, " ", 2)
 
 	if len(segments) == 0 {
-		err = &SyntaxError{&InvalidPreprocessorValueError{"", tok.Value}}
+		err = &SyntaxError{tok.SourceInfo, &InvalidPreprocessorValueError{"", tok.Value}}
 		return
 	}
 
 	switch segments[0] {
 	case "include":
 		if len(segments) != 2 {
-			err = &SyntaxError{&InvalidPreprocessorValueError{"include", tok.Value}}
+			err = &SyntaxError{tok.SourceInfo, &InvalidPreprocessorValueError{"include", tok.Value}}
 			return
 		}
 
@@ -64,7 +64,7 @@ func (p *Parser) parsePreprocessorDirective() (err error) {
 		return
 	case "def":
 		if len(segments) != 2 {
-			err = &SyntaxError{&InvalidPreprocessorValueError{"def", tok.Value}}
+			err = &SyntaxError{tok.SourceInfo, &InvalidPreprocessorValueError{"def", tok.Value}}
 			return
 		}
 

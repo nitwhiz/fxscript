@@ -62,15 +62,7 @@ func (n *BinaryOpNode) exprNode()   {}
 func (n *UnaryOpNode) exprNode()    {}
 
 func (n *CommandNode) String() string {
-	var fname string
-
-	if n.Filename == "" {
-		fname = "<script>"
-	} else {
-		fname = n.Filename
-	}
-
-	prefix := fmt.Sprintf("%s:%d:%d", fname, n.Line, n.Column)
+	prefix := n.SourceInfo.String()
 
 	if len(n.Args) == 0 {
 		return fmt.Sprintf("%s CMD(%02d)", prefix, n.Type)

@@ -42,11 +42,12 @@ func (e *UnknownPreprocessorDirectiveError) Error() string {
 }
 
 type SyntaxError struct {
+	*SourceInfo
 	Err error
 }
 
 func (e *SyntaxError) Error() string {
-	return fmt.Sprintf("syntax error: %s", e.Err)
+	return fmt.Sprintf("syntax error at %s: %s", e.SourceInfo, e.Err)
 }
 
 type UnknownOperatorError struct {
@@ -58,11 +59,12 @@ func (e *UnknownOperatorError) Error() string {
 }
 
 type RuntimeError struct {
+	*SourceInfo
 	Err error
 }
 
 func (e *RuntimeError) Error() string {
-	return fmt.Sprintf("runtime error: %s", e.Err)
+	return fmt.Sprintf("runtime error at %s: %s", e.SourceInfo, e.Err)
 }
 
 type UnexpectedBinaryOpError struct {

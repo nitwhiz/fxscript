@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"log/slog"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -102,7 +103,7 @@ func TestIntegration(t *testing.T) {
 	}
 
 	for _, scriptPath := range testScripts {
-		t.Run(strings.TrimSuffix(filepath.Base(scriptPath), "."+testFileExt), func(t *testing.T) {
+		t.Run(strings.TrimSuffix(path.Base(scriptPath), "."+testFileExt), func(t *testing.T) {
 			data, err := os.ReadFile(scriptPath)
 
 			require.NoError(t, err)
@@ -129,11 +130,14 @@ func TestIntegration(t *testing.T) {
 				},
 			}
 
-			parserConfig := rtCfg.ParserConfig(fx.NewParserFS(os.DirFS("scripts/")), func(v string) ([]byte, error) {
-				return []byte(v + " \"hello world!\""), nil
-			})
+			parserConfig := rtCfg.ParserConfig(
+				fx.NewParserFS(os.DirFS("scripts/")),
+				func(v string) ([]byte, error) {
+					return []byte(v + " \"hello world!\""), nil
+				},
+			)
 
-			fxs, err := fx.LoadScript(segments[0], parserConfig)
+			fxs, err := fx.LoadScript(segments[0], path.Base(scriptPath), parserConfig)
 
 			require.NoError(t, err)
 
@@ -217,61 +221,6 @@ func TestIntegration(t *testing.T) {
 				missingChecks := len(e.results) - rPtr
 				t.Fatal("not all results were checked: missing " + strconv.Itoa(missingChecks) + " EXPECT line(s)")
 			}
-		})
-	}
-}
-
-func BenchmarkIntegration(b *testing.B) {
-	testScripts, err := filepath.Glob("scripts/*." + testFileExt)
-
-	require.NoError(b, err)
-
-	slices.Sort(testScripts)
-
-	identifiers := fx.IdentifierTable{
-		"A": identA,
-	}
-
-	for _, scriptPath := range testScripts {
-		b.Run(strings.TrimSuffix(filepath.Base(scriptPath), "."+testFileExt), func(b *testing.B) {
-			data, err := os.ReadFile(scriptPath)
-
-			require.NoError(b, err)
-
-			segments := bytes.Split(data, []byte("--- EXPECT ---\n"))
-
-			require.Len(b, segments, 2)
-
-			e := NewTestEnv(b)
-
-			rtCfg := &vm.RuntimeConfig{
-				UserCommands: []*vm.Command{
-					{"eval", cmdEval, e.handleEval},
-					{"break", cmdBreakpoint, e.handleBreak},
-				},
-				Identifiers: identifiers,
-			}
-
-			parserConfig := rtCfg.ParserConfig(nil, func(v string) ([]byte, error) {
-				return []byte(v + "\"hello world!\""), nil
-			})
-
-			fxs, err := fx.LoadScript(segments[0], parserConfig)
-
-			require.NoError(b, err)
-
-			b.ResetTimer()
-
-			for i := 0; i < b.N; i++ {
-				rt := vm.NewRuntime(fxs, rtCfg)
-
-				b.StartTimer()
-
-				rt.Start(0, e)
-
-				b.StopTimer()
-			}
-
 		})
 	}
 }

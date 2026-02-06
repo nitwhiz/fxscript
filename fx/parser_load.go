@@ -64,8 +64,8 @@ func (p *Parser) parseFile(fileName string) (err error) {
 	return
 }
 
-func LoadScript(scriptData []byte, cfg *ParserConfig) (script *Script, err error) {
-	return NewParser(NewLexer(scriptData, ""), cfg).Parse()
+func LoadScript(scriptData []byte, filename string, cfg *ParserConfig) (script *Script, err error) {
+	return NewParser(NewLexer(scriptData, filename), cfg).Parse()
 }
 
 func LoadFile(fileName string, cfg *ParserConfig) (script *Script, err error) {

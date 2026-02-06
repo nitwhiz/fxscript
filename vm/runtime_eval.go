@@ -97,8 +97,8 @@ func xor[T numeric](a, b T) int {
 	return int(a) ^ int(b)
 }
 
-func evalOp[T numeric](op fx.TokenType, a, b T) (v T, err error) {
-	switch op {
+func evalOp[T numeric](op *fx.Token, a, b T) (v T, err error) {
+	switch op.Type {
 	case fx.ADD:
 		v = add(a, b)
 		break
@@ -148,7 +148,7 @@ func evalOp[T numeric](op fx.TokenType, a, b T) (v T, err error) {
 		v = T(xor(a, b))
 		break
 	default:
-		err = &fx.SyntaxError{&fx.UnknownOperatorError{op}}
+		err = &fx.SyntaxError{op.SourceInfo, &fx.UnknownOperatorError{TokenType: op.Type}}
 		break
 	}
 
@@ -176,7 +176,7 @@ func (f *Frame) evalPointer(n *fx.UnaryOpNode) (v any, ok bool, err error) {
 				v = v.(int)
 				break
 			default:
-				err = &fx.RuntimeError{&fx.UnresolvedSymbolError{fmt.Sprintf("%+v", v)}}
+				err = &fx.RuntimeError{n.SourceInfo, &fx.UnresolvedSymbolError{fmt.Sprintf("%+v", v)}}
 			}
 
 			break
@@ -204,7 +204,7 @@ func (f *Frame) evalPointer(n *fx.UnaryOpNode) (v any, ok bool, err error) {
 				v = f.getValue(fx.Identifier(v.(int)))
 				break
 			default:
-				err = &fx.RuntimeError{&fx.UnresolvedSymbolError{fmt.Sprintf("%+v", v)}}
+				err = &fx.RuntimeError{n.SourceInfo, &fx.UnresolvedSymbolError{fmt.Sprintf("%+v", v)}}
 				break
 			}
 
@@ -264,7 +264,7 @@ func (f *Frame) evalUnaryOp(n *fx.UnaryOpNode) (v any, err error) {
 			break
 		}
 	default:
-		err = &fx.SyntaxError{&fx.UnknownOperatorError{n.Operator.Type}}
+		err = &fx.SyntaxError{n.SourceInfo, &fx.UnknownOperatorError{TokenType: n.Operator.Type}}
 		break
 	}
 
@@ -317,22 +317,22 @@ func (f *Frame) evalBinaryOp(n *fx.BinaryOpNode) (result any, err error) {
 	}
 
 	if iLeft != nil && iRight != nil {
-		return evalOp(n.Operator.Type, *iLeft, *iRight)
+		return evalOp(n.Operator, *iLeft, *iRight)
 	}
 
 	if fLeft != nil && fRight != nil {
-		return evalOp(n.Operator.Type, *fLeft, *fRight)
+		return evalOp(n.Operator, *fLeft, *fRight)
 	}
 
 	if iLeft != nil && fRight != nil {
-		return evalOp(n.Operator.Type, float64(*iLeft), *fRight)
+		return evalOp(n.Operator, float64(*iLeft), *fRight)
 	}
 
 	if fLeft != nil && iRight != nil {
-		return evalOp(n.Operator.Type, *fLeft, float64(*iRight))
+		return evalOp(n.Operator, *fLeft, float64(*iRight))
 	}
 
-	err = &fx.RuntimeError{&fx.UnexpectedBinaryOpError{left, right}}
+	err = &fx.RuntimeError{n.Operator.SourceInfo, &fx.UnexpectedBinaryOpError{left, right}}
 
 	return
 }

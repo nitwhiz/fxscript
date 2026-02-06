@@ -23,7 +23,7 @@ func (p *Parser) parsePrimary(script *Script) (expr ExpressionNode, err error) {
 	case IDENT:
 		return p.resolveIdent(script, tok)
 	default:
-		err = &SyntaxError{&UnexpectedTokenError{[]TokenType{NEWLINE, ADD, SUB, MUL, EXCL, INV, AND, LPAREN, NUMBER, STRING, IDENT}, tok}}
+		err = &SyntaxError{tok.SourceInfo, &UnexpectedTokenError{[]TokenType{NEWLINE, ADD, SUB, MUL, EXCL, INV, AND, LPAREN, NUMBER, STRING, IDENT}, tok}}
 		return
 	}
 }

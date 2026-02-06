@@ -181,7 +181,7 @@ func (p *Parser) parseExpressionInParens(script *Script) (expr ExpressionNode, e
 	}
 
 	if tok.Type != RPAREN {
-		err = &SyntaxError{&UnexpectedTokenError{[]TokenType{RPAREN}, tok}}
+		err = &SyntaxError{tok.SourceInfo, &UnexpectedTokenError{[]TokenType{RPAREN}, tok}}
 		return
 	}
 
@@ -308,7 +308,7 @@ func (p *Parser) parseCommand(script *Script) (err error) {
 				if ok {
 					macro = m
 				} else {
-					err = &SyntaxError{&UnknownCommandError{tok.Value}}
+					err = &SyntaxError{tok.SourceInfo, &UnknownCommandError{tok.Value}}
 					return
 				}
 			} else {
@@ -470,7 +470,7 @@ func (p *Parser) parseNextNode(script *Script, end TokenType) (ok bool, err erro
 			return
 		}
 	default:
-		err = &SyntaxError{&UnexpectedTokenError{[]TokenType{end, MACRO, DEF, IDENT, NEWLINE}, tok}}
+		err = &SyntaxError{tok.SourceInfo, &UnexpectedTokenError{[]TokenType{end, MACRO, DEF, IDENT, NEWLINE}, tok}}
 		return
 	}
 
@@ -479,14 +479,16 @@ func (p *Parser) parseNextNode(script *Script, end TokenType) (ok bool, err erro
 
 func augmentAddressNodes(script *Script) (err error) {
 	for label, addrNodes := range script.symbols {
-		pc, ok := script.labels[label]
+		if len(addrNodes) != 0 {
+			pc, ok := script.labels[label]
 
-		if !ok {
-			return &SyntaxError{&UnknownLabelError{label}}
-		}
+			if !ok {
+				return &SyntaxError{addrNodes[0].SourceInfo, &UnknownLabelError{label}}
+			}
 
-		for _, addr := range addrNodes {
-			addr.Address = pc
+			for _, addr := range addrNodes {
+				addr.Address = pc
+			}
 		}
 	}
 
