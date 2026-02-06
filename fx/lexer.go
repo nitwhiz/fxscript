@@ -30,19 +30,31 @@ type Lexer struct {
 	pos       int
 	sourceLen int
 
+	filename string
+	line     int
+	col      int
+
 	lastToken *Token
 
 	done bool
 }
 
-func NewLexer(source []byte) *Lexer {
+func NewLexer(source []byte, filename string) *Lexer {
 	l := Lexer{
 		source:    source,
 		sourceLen: len(source),
 		pos:       0,
+
+		filename: filename,
+		line:     1,
+		col:      0,
 	}
 
 	return &l
+}
+
+func (l *Lexer) Filename() string {
+	return l.filename
 }
 
 func (l *Lexer) peekAhead(n int) byte {
@@ -59,29 +71,44 @@ func (l *Lexer) peek() byte {
 
 func (l *Lexer) advance() byte {
 	curr := l.peek()
+
+	if curr == '\n' {
+		l.line++
+		l.col = 0
+	} else {
+		l.col++
+	}
+
 	l.pos++
 
 	return curr
 }
 
 func (l *Lexer) skipAhead(n int) {
-	if l.pos+n >= l.sourceLen {
-		l.pos = l.sourceLen
-		return
-	}
+	var b byte
 
-	l.pos += n
+	for range n {
+		if b = l.advance(); b == 0 {
+			break
+		}
+	}
 }
 
 func (l *Lexer) substr(n int) string {
 	var res string
 
-	if l.peekAhead(n) == 0 {
+	if l.pos+n >= l.sourceLen {
 		res = string(l.source[l.pos:l.sourceLen])
-		l.pos = l.sourceLen
 	} else {
 		res = string(l.source[l.pos:(l.pos + n)])
-		l.pos += n
+	}
+
+	var b byte
+
+	for range n {
+		if b = l.advance(); b == 0 {
+			break
+		}
 	}
 
 	return res
@@ -121,10 +148,10 @@ func (l *Lexer) lexIdent() *Token {
 	ident := l.substr(n)
 
 	if tokTyp, ok := identKeywords[ident]; ok {
-		return newToken(tokTyp, "")
+		return l.newToken(tokTyp, "")
 	}
 
-	return newToken(IDENT, ident)
+	return l.newToken(IDENT, ident)
 }
 
 func (l *Lexer) lexNumber() *Token {
@@ -140,7 +167,7 @@ func (l *Lexer) lexNumber() *Token {
 		}
 	}
 
-	return newToken(NUMBER, l.substr(n))
+	return l.newToken(NUMBER, l.substr(n))
 }
 
 func (l *Lexer) lexOperator() *Token {
@@ -212,10 +239,10 @@ func (l *Lexer) lexOperator() *Token {
 		break
 	}
 
-	return newToken(tokType, opVal)
+	return l.newToken(tokType, opVal)
 }
 
-func (l *Lexer) lexString() *Token {
+func (l *Lexer) lexString() (token *Token) {
 	l.advance()
 
 	n := 0
@@ -224,11 +251,25 @@ func (l *Lexer) lexString() *Token {
 		n += 1
 	}
 
-	token := newToken(STRING, l.substr(n))
+	token = l.newToken(STRING, l.substr(n))
 
 	l.advance()
 
-	return token
+	return
+}
+
+func (l *Lexer) lexPreprocessor() (token *Token) {
+	l.advance()
+
+	n := 0
+
+	for l.peekAhead(n) != '\n' {
+		n += 1
+	}
+
+	token = l.newToken(PREPROCESSOR, l.substr(n))
+
+	return
 }
 
 func (l *Lexer) lexNextToken() *Token {
@@ -241,27 +282,29 @@ func (l *Lexer) lexNextToken() *Token {
 	case 0:
 		l.done = true
 		return eofToken
+	case '@':
+		return l.lexPreprocessor()
 	case ',':
 		l.advance()
-		return newToken(COMMA, "")
+		return l.newToken(COMMA, "")
 	case '\n':
 		l.advance()
 
-		tok := newToken(NEWLINE, "")
+		tok := l.newToken(NEWLINE, "")
 
 		return tok
 	case ':':
 		l.advance()
-		return newToken(COLON, "")
+		return l.newToken(COLON, "")
 	case '(':
 		l.advance()
-		return newToken(LPAREN, "")
+		return l.newToken(LPAREN, "")
 	case ')':
 		l.advance()
-		return newToken(RPAREN, "")
+		return l.newToken(RPAREN, "")
 	case '$':
 		l.advance()
-		return newToken(DOLLAR, "")
+		return l.newToken(DOLLAR, "")
 	case '"':
 		return l.lexString()
 	case '#':
@@ -280,7 +323,7 @@ func (l *Lexer) lexNextToken() *Token {
 		return l.lexIdent()
 	}
 
-	return newToken(ILLEGAL, string(l.advance()))
+	return l.newToken(ILLEGAL, string(l.advance()))
 }
 
 func (l *Lexer) NextToken() (*Token, error) {

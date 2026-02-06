@@ -1,8 +1,6 @@
 package vm
 
 import (
-	"io/fs"
-
 	"github.com/nitwhiz/fxscript/fx"
 )
 
@@ -14,7 +12,7 @@ type RuntimeConfig struct {
 	Hooks            *Hooks
 }
 
-func (r *RuntimeConfig) ParserConfig(fs fs.FS, lookupFn fx.LookupFn) *fx.ParserConfig {
+func (r *RuntimeConfig) ParserConfig(fs *fx.ParserFS, lookupFn fx.LookupFn) *fx.ParserConfig {
 	commandTypes := fx.CommandTypeTable{}
 
 	for _, cmd := range BaseCommands {

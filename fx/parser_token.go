@@ -38,6 +38,16 @@ func NewTokenIterator(prefix string, source TokenSource, bufSize int) *TokenIter
 	}
 }
 
+func (i *TokenIterator) Filename() (fileName string) {
+	fileName = i.src.Filename()
+
+	if fileName == "" && i.prev != nil {
+		return i.prev.Filename()
+	}
+
+	return
+}
+
 func (i *TokenIterator) SetPrefix(prefix string) {
 	i.prefix = prefix
 }
@@ -90,6 +100,10 @@ func (i *TokenIterator) Insert(prefix string, src TokenSource) {
 		drained:      i.drained,
 		prev:         i.prev,
 		lastInsertId: i.lastInsertId,
+	}
+
+	if prefix == "" {
+		prefix = i.prefix
 	}
 
 	i.prefix = prefix + "_" + strconv.Itoa(int(i.lastInsertId.Add(1)))
@@ -163,7 +177,13 @@ type TokenSlice struct {
 }
 
 func newTokenSlice(tokens []*Token) *TokenSlice {
-	return &TokenSlice{tokens: tokens}
+	return &TokenSlice{
+		tokens: tokens,
+	}
+}
+
+func (*TokenSlice) Filename() string {
+	return ""
 }
 
 func (s *TokenSlice) NextToken() (tok *Token, err error) {

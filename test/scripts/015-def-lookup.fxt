@@ -1,5 +1,6 @@
 
 @def myValue
+
 eval myValue
 
 --- EXPECT ---

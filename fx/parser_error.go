@@ -121,3 +121,12 @@ type LookupFnError struct {
 func (e *LookupFnError) Error() string {
 	return fmt.Sprintf("lookup function error: %s", e.Err)
 }
+
+type InvalidPreprocessorValueError struct {
+	Directive string
+	Value     string
+}
+
+func (e *InvalidPreprocessorValueError) Error() string {
+	return fmt.Sprintf("invalid preprocessor value for directive %s: %s", e.Directive, e.Value)
+}

@@ -129,7 +129,7 @@ func TestIntegration(t *testing.T) {
 				},
 			}
 
-			parserConfig := rtCfg.ParserConfig(os.DirFS("scripts/"), func(v string) ([]byte, error) {
+			parserConfig := rtCfg.ParserConfig(fx.NewParserFS(os.DirFS("scripts/")), func(v string) ([]byte, error) {
 				return []byte(v + " \"hello world!\""), nil
 			})
 

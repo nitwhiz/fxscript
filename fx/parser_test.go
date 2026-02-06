@@ -15,7 +15,7 @@ const (
 )
 
 func parse(script string) (commands []*CommandNode, defines map[string]ExpressionNode, labels map[string]int, macros map[string]*Macro, err error) {
-	l := NewLexer([]byte(script))
+	l := NewLexer([]byte(script), "")
 	p := NewParser(l, &ParserConfig{
 		CommandTypes: CommandTypeTable{
 			"myCmd": cmdMyCmd,
@@ -34,6 +34,10 @@ func parse(script string) (commands []*CommandNode, defines map[string]Expressio
 	return s.Commands(), s.defines, s.labels, s.macros, nil
 }
 
+func sourceInfo(line, col int) *SourceInfo {
+	return &SourceInfo{Line: line, Column: col, Filename: ""}
+}
+
 func TestParser_Ident(t *testing.T) {
 	script := "myCmd A\n"
 
@@ -43,9 +47,13 @@ func TestParser_Ident(t *testing.T) {
 
 	expectedCommands := []*CommandNode{
 		{
-			cmdMyCmd,
-			[]ExpressionNode{
-				&IdentifierNode{Identifier: identA},
+			SourceInfo: sourceInfo(1, 1),
+			Type:       cmdMyCmd,
+			Args: []ExpressionNode{
+				&IdentifierNode{
+					SourceInfo: sourceInfo(1, 7),
+					Identifier: identA,
+				},
 			},
 		},
 	}
@@ -65,13 +73,56 @@ func TestParser_Numbers(t *testing.T) {
 	require.NoError(t, err)
 
 	expectedCommands := []*CommandNode{
-		{cmdMyCmd, []ExpressionNode{
-			&IntegerNode{Value: 42},
-			&UnaryOpNode{Operator: &Token{SUB, "-"}, Expr: &IntegerNode{Value: 42}},
-			&FloatNode{Value: 13.37},
-			&UnaryOpNode{Operator: &Token{SUB, "-"}, Expr: &FloatNode{Value: 13.37}},
-			&UnaryOpNode{Operator: &Token{ADD, "+"}, Expr: &IntegerNode{Value: 13}},
-		}},
+		{
+			SourceInfo: sourceInfo(1, 1),
+			Type:       cmdMyCmd,
+			Args: []ExpressionNode{
+				&IntegerNode{
+					SourceInfo: sourceInfo(1, 7),
+					Value:      42,
+				},
+				&UnaryOpNode{
+					SourceInfo: sourceInfo(1, 11),
+					Operator: &Token{
+						SourceInfo: sourceInfo(1, 11),
+						Type:       SUB,
+						Value:      "-",
+					},
+					Expr: &IntegerNode{
+						SourceInfo: sourceInfo(1, 12),
+						Value:      42,
+					},
+				},
+				&FloatNode{
+					SourceInfo: sourceInfo(1, 16),
+					Value:      13.37,
+				},
+				&UnaryOpNode{
+					SourceInfo: sourceInfo(1, 23),
+					Operator: &Token{
+						SourceInfo: sourceInfo(1, 23),
+						Type:       SUB,
+						Value:      "-",
+					},
+					Expr: &FloatNode{
+						SourceInfo: sourceInfo(1, 24),
+						Value:      13.37,
+					},
+				},
+				&UnaryOpNode{
+					SourceInfo: sourceInfo(1, 31),
+					Operator: &Token{
+						SourceInfo: sourceInfo(1, 31),
+						Type:       ADD,
+						Value:      "+",
+					},
+					Expr: &IntegerNode{
+						SourceInfo: sourceInfo(1, 32),
+						Value:      13,
+					},
+				},
+			},
+		},
 	}
 
 	require.Equal(t, expectedCommands, commands)
@@ -89,34 +140,88 @@ func TestParser_OperatorsAndNumbers(t *testing.T) {
 	require.NoError(t, err)
 
 	expectedCommands := []*CommandNode{
-		{cmdMyCmd, []ExpressionNode{
-			&BinaryOpNode{
-				Left: &BinaryOpNode{
-					Left: &UnaryOpNode{
-						Operator: &Token{ADD, "+"},
-						Expr:     &IntegerNode{42},
-					},
-					Operator: &Token{ADD, "+"},
-					Right: &UnaryOpNode{
-						Operator: &Token{ADD, "+"},
-						Expr:     &IntegerNode{13},
-					},
-				},
-				Operator: &Token{SUB, "-"},
-				Right: &BinaryOpNode{
+		{
+			SourceInfo: sourceInfo(1, 1),
+			Type:       cmdMyCmd,
+			Args: []ExpressionNode{
+				&BinaryOpNode{
+					SourceInfo: sourceInfo(1, 17),
 					Left: &BinaryOpNode{
-						Left:     &IntegerNode{37},
-						Operator: &Token{MUL, "*"},
+						SourceInfo: sourceInfo(1, 11),
+						Left: &UnaryOpNode{
+							SourceInfo: sourceInfo(1, 7),
+							Operator: &Token{
+								SourceInfo: sourceInfo(1, 7),
+								Type:       ADD,
+								Value:      "+",
+							},
+							Expr: &IntegerNode{
+								SourceInfo: sourceInfo(1, 8),
+								Value:      42,
+							},
+						},
+						Operator: &Token{
+							SourceInfo: sourceInfo(1, 11),
+							Type:       ADD,
+							Value:      "+",
+						},
 						Right: &UnaryOpNode{
-							Operator: &Token{SUB, "-"},
-							Expr:     &IntegerNode{72},
+							SourceInfo: sourceInfo(1, 13),
+							Operator: &Token{
+								SourceInfo: sourceInfo(1, 13),
+								Type:       ADD,
+								Value:      "+",
+							},
+							Expr: &IntegerNode{
+								SourceInfo: sourceInfo(1, 14),
+								Value:      13,
+							},
 						},
 					},
-					Operator: &Token{DIV, "/"},
-					Right:    &IntegerNode{42},
+					Operator: &Token{
+						SourceInfo: sourceInfo(1, 17),
+						Type:       SUB,
+						Value:      "-",
+					},
+					Right: &BinaryOpNode{
+						SourceInfo: sourceInfo(1, 28),
+						Left: &BinaryOpNode{
+							SourceInfo: sourceInfo(1, 22),
+							Left: &IntegerNode{
+								SourceInfo: sourceInfo(1, 19),
+								Value:      37,
+							},
+							Operator: &Token{
+								SourceInfo: sourceInfo(1, 22),
+								Type:       MUL,
+								Value:      "*",
+							},
+							Right: &UnaryOpNode{
+								SourceInfo: sourceInfo(1, 24),
+								Operator: &Token{
+									SourceInfo: sourceInfo(1, 24),
+									Type:       SUB,
+									Value:      "-",
+								},
+								Expr: &IntegerNode{
+									SourceInfo: sourceInfo(1, 25),
+									Value:      72,
+								},
+							},
+						},
+						Operator: &Token{
+							SourceInfo: sourceInfo(1, 28),
+							Type:       DIV,
+							Value:      "/",
+						},
+						Right: &IntegerNode{
+							SourceInfo: sourceInfo(1, 30),
+							Value:      42,
+						},
+					},
 				},
 			},
-		}},
+		},
 	}
 
 	require.Equal(t, expectedCommands, commands)
@@ -134,31 +239,80 @@ func TestParser_OperatorsWithParens(t *testing.T) {
 	require.NoError(t, err)
 
 	expectedCommands := []*CommandNode{
-		{cmdMyCmd, []ExpressionNode{
-			&BinaryOpNode{
-				Left: &BinaryOpNode{
-					Left: &UnaryOpNode{
-						Operator: &Token{ADD, "+"},
-						Expr:     &IntegerNode{42},
-					},
-					Operator: &Token{ADD, "+"},
-					Right:    &IntegerNode{13},
-				},
-				Operator: &Token{SUB, "-"},
-				Right: &BinaryOpNode{
-					Left:     &IntegerNode{37},
-					Operator: &Token{MUL, "*"},
-					Right: &BinaryOpNode{
+		{
+			SourceInfo: sourceInfo(1, 1),
+			Type:       cmdMyCmd,
+			Args: []ExpressionNode{
+				&BinaryOpNode{
+					SourceInfo: sourceInfo(1, 18),
+					Left: &BinaryOpNode{
+						SourceInfo: sourceInfo(1, 12),
 						Left: &UnaryOpNode{
-							Operator: &Token{SUB, "-"},
-							Expr:     &IntegerNode{72},
+							SourceInfo: sourceInfo(1, 8),
+							Operator: &Token{
+								SourceInfo: sourceInfo(1, 8),
+								Type:       ADD,
+								Value:      "+",
+							},
+							Expr: &IntegerNode{
+								SourceInfo: sourceInfo(1, 9),
+								Value:      42,
+							},
 						},
-						Operator: &Token{DIV, "/"},
-						Right:    &IntegerNode{42},
+						Operator: &Token{
+							SourceInfo: sourceInfo(1, 12),
+							Type:       ADD,
+							Value:      "+",
+						},
+						Right: &IntegerNode{
+							SourceInfo: sourceInfo(1, 14),
+							Value:      13,
+						},
+					},
+					Operator: &Token{
+						SourceInfo: sourceInfo(1, 18),
+						Type:       SUB,
+						Value:      "-",
+					},
+					Right: &BinaryOpNode{
+						SourceInfo: sourceInfo(1, 24),
+						Left: &IntegerNode{
+							SourceInfo: sourceInfo(1, 21),
+							Value:      37,
+						},
+						Operator: &Token{
+							SourceInfo: sourceInfo(1, 24),
+							Type:       MUL,
+							Value:      "*",
+						},
+						Right: &BinaryOpNode{
+							SourceInfo: sourceInfo(1, 31),
+							Left: &UnaryOpNode{
+								SourceInfo: sourceInfo(1, 27),
+								Operator: &Token{
+									SourceInfo: sourceInfo(1, 27),
+									Type:       SUB,
+									Value:      "-",
+								},
+								Expr: &IntegerNode{
+									SourceInfo: sourceInfo(1, 28),
+									Value:      72,
+								},
+							},
+							Operator: &Token{
+								SourceInfo: sourceInfo(1, 31),
+								Type:       DIV,
+								Value:      "/",
+							},
+							Right: &IntegerNode{
+								SourceInfo: sourceInfo(1, 33),
+								Value:      42,
+							},
+						},
 					},
 				},
 			},
-		}},
+		},
 	}
 
 	require.Equal(t, expectedCommands, commands)
@@ -176,10 +330,44 @@ func TestParser_InvOperator(t *testing.T) {
 	require.NoError(t, err)
 
 	expectedCommands := []*CommandNode{
-		{cmdMyCmd, []ExpressionNode{
-			&UnaryOpNode{Operator: &Token{INV, "^"}, Expr: &IntegerNode{42}},
-			&UnaryOpNode{Operator: &Token{INV, "^"}, Expr: &UnaryOpNode{Operator: &Token{SUB, "-"}, Expr: &IntegerNode{13}}},
-		}},
+		{
+			SourceInfo: sourceInfo(1, 1),
+			Type:       cmdMyCmd,
+			Args: []ExpressionNode{
+				&UnaryOpNode{
+					SourceInfo: sourceInfo(1, 7),
+					Operator: &Token{
+						SourceInfo: sourceInfo(1, 7),
+						Type:       INV,
+						Value:      "^",
+					},
+					Expr: &IntegerNode{
+						SourceInfo: sourceInfo(1, 8),
+						Value:      42,
+					},
+				},
+				&UnaryOpNode{
+					SourceInfo: sourceInfo(1, 12),
+					Operator: &Token{
+						SourceInfo: sourceInfo(1, 12),
+						Type:       INV,
+						Value:      "^",
+					},
+					Expr: &UnaryOpNode{
+						SourceInfo: sourceInfo(1, 13),
+						Operator: &Token{
+							SourceInfo: sourceInfo(1, 13),
+							Type:       SUB,
+							Value:      "-",
+						},
+						Expr: &IntegerNode{
+							SourceInfo: sourceInfo(1, 14),
+							Value:      13,
+						},
+					},
+				},
+			},
+		},
 	}
 
 	require.Equal(t, expectedCommands, commands)
@@ -197,10 +385,44 @@ func TestParser_AddrOfOperator(t *testing.T) {
 	require.NoError(t, err)
 
 	expectedCommands := []*CommandNode{
-		{cmdMyCmd, []ExpressionNode{
-			&UnaryOpNode{Operator: &Token{AND, "&"}, Expr: &IntegerNode{42}},
-			&UnaryOpNode{Operator: &Token{AND, "&"}, Expr: &UnaryOpNode{Operator: &Token{SUB, "-"}, Expr: &IntegerNode{13}}},
-		}},
+		{
+			SourceInfo: sourceInfo(1, 1),
+			Type:       cmdMyCmd,
+			Args: []ExpressionNode{
+				&UnaryOpNode{
+					SourceInfo: sourceInfo(1, 7),
+					Operator: &Token{
+						SourceInfo: sourceInfo(1, 7),
+						Type:       AND,
+						Value:      "&",
+					},
+					Expr: &IntegerNode{
+						SourceInfo: sourceInfo(1, 8),
+						Value:      42,
+					},
+				},
+				&UnaryOpNode{
+					SourceInfo: sourceInfo(1, 12),
+					Operator: &Token{
+						SourceInfo: sourceInfo(1, 12),
+						Type:       AND,
+						Value:      "&",
+					},
+					Expr: &UnaryOpNode{
+						SourceInfo: sourceInfo(1, 13),
+						Operator: &Token{
+							SourceInfo: sourceInfo(1, 13),
+							Type:       SUB,
+							Value:      "-",
+						},
+						Expr: &IntegerNode{
+							SourceInfo: sourceInfo(1, 14),
+							Value:      13,
+						},
+					},
+				},
+			},
+		},
 	}
 
 	require.Equal(t, expectedCommands, commands)
@@ -218,7 +440,28 @@ func TestParser_AndOperator(t *testing.T) {
 	require.NoError(t, err)
 
 	expectedCommands := []*CommandNode{
-		{cmdMyCmd, []ExpressionNode{&BinaryOpNode{Left: &IntegerNode{4}, Operator: &Token{AND, "&"}, Right: &IntegerNode{16}}}},
+		{
+			SourceInfo: sourceInfo(1, 1),
+			Type:       cmdMyCmd,
+			Args: []ExpressionNode{
+				&BinaryOpNode{
+					SourceInfo: sourceInfo(1, 9),
+					Left: &IntegerNode{
+						SourceInfo: sourceInfo(1, 7),
+						Value:      4,
+					},
+					Operator: &Token{
+						SourceInfo: sourceInfo(1, 9),
+						Type:       AND,
+						Value:      "&",
+					},
+					Right: &IntegerNode{
+						SourceInfo: sourceInfo(1, 11),
+						Value:      16,
+					},
+				},
+			},
+		},
 	}
 
 	require.Equal(t, expectedCommands, commands)
@@ -236,7 +479,28 @@ func TestParser_OrOperator(t *testing.T) {
 	require.NoError(t, err)
 
 	expectedCommands := []*CommandNode{
-		{cmdMyCmd, []ExpressionNode{&BinaryOpNode{Left: &IntegerNode{4}, Operator: &Token{OR, "|"}, Right: &IntegerNode{16}}}},
+		{
+			SourceInfo: sourceInfo(1, 1),
+			Type:       cmdMyCmd,
+			Args: []ExpressionNode{
+				&BinaryOpNode{
+					SourceInfo: sourceInfo(1, 9),
+					Left: &IntegerNode{
+						SourceInfo: sourceInfo(1, 7),
+						Value:      4,
+					},
+					Operator: &Token{
+						SourceInfo: sourceInfo(1, 9),
+						Type:       OR,
+						Value:      "|",
+					},
+					Right: &IntegerNode{
+						SourceInfo: sourceInfo(1, 11),
+						Value:      16,
+					},
+				},
+			},
+		},
 	}
 
 	require.Equal(t, expectedCommands, commands)
@@ -262,10 +526,46 @@ func TestParser_Labels(t *testing.T) {
 	require.NoError(t, err)
 
 	expectedCommands := []*CommandNode{
-		{cmdMyCmd, []ExpressionNode{&IntegerNode{1}}},
-		{cmdMyCmd, []ExpressionNode{&IntegerNode{2}}},
-		{cmdMyCmd, []ExpressionNode{&IntegerNode{3}}},
-		{cmdMyCmd, []ExpressionNode{&IntegerNode{4}}},
+		{
+			SourceInfo: sourceInfo(2, 3),
+			Type:       cmdMyCmd,
+			Args: []ExpressionNode{
+				&IntegerNode{
+					SourceInfo: sourceInfo(2, 9),
+					Value:      1,
+				},
+			},
+		},
+		{
+			SourceInfo: sourceInfo(4, 4),
+			Type:       cmdMyCmd,
+			Args: []ExpressionNode{
+				&IntegerNode{
+					SourceInfo: sourceInfo(4, 10),
+					Value:      2,
+				},
+			},
+		},
+		{
+			SourceInfo: sourceInfo(6, 4),
+			Type:       cmdMyCmd,
+			Args: []ExpressionNode{
+				&IntegerNode{
+					SourceInfo: sourceInfo(6, 10),
+					Value:      3,
+				},
+			},
+		},
+		{
+			SourceInfo: sourceInfo(8, 4),
+			Type:       cmdMyCmd,
+			Args: []ExpressionNode{
+				&IntegerNode{
+					SourceInfo: sourceInfo(8, 10),
+					Value:      4,
+				},
+			},
+		},
 	}
 
 	require.Equal(t, expectedCommands, commands)
@@ -299,10 +599,46 @@ func TestParser_Macros(t *testing.T) {
 	require.NoError(t, err)
 
 	expectedCommands := []*CommandNode{
-		{cmdMyCmd, []ExpressionNode{&IntegerNode{1}}},
-		{cmdMyCmd, []ExpressionNode{&IntegerNode{1}}},
-		{cmdMyCmd, []ExpressionNode{&IntegerNode{2}}},
-		{cmdMyCmd, []ExpressionNode{&IntegerNode{3}}},
+		{
+			SourceInfo: sourceInfo(3, 4),
+			Type:       cmdMyCmd,
+			Args: []ExpressionNode{
+				&IntegerNode{
+					SourceInfo: sourceInfo(3, 10),
+					Value:      1,
+				},
+			},
+		},
+		{
+			SourceInfo: sourceInfo(3, 4),
+			Type:       cmdMyCmd,
+			Args: []ExpressionNode{
+				&IntegerNode{
+					SourceInfo: sourceInfo(3, 10),
+					Value:      1,
+				},
+			},
+		},
+		{
+			SourceInfo: sourceInfo(8, 4),
+			Type:       cmdMyCmd,
+			Args: []ExpressionNode{
+				&IntegerNode{
+					SourceInfo: sourceInfo(12, 6),
+					Value:      2,
+				},
+			},
+		},
+		{
+			SourceInfo: sourceInfo(13, 3),
+			Type:       cmdMyCmd,
+			Args: []ExpressionNode{
+				&IntegerNode{
+					SourceInfo: sourceInfo(13, 9),
+					Value:      3,
+				},
+			},
+		},
 	}
 
 	require.Equal(t, expectedCommands, commands)
@@ -330,10 +666,46 @@ func TestParser_MacrosWithLocalLabels(t *testing.T) {
 	require.NoError(t, err)
 
 	expectedCommands := []*CommandNode{
-		{cmdMyCmd, []ExpressionNode{&IdentifierNode{identA}}},
-		{cmdMyCmd, []ExpressionNode{&AddressNode{0}}},
-		{cmdMyCmd, []ExpressionNode{&IdentifierNode{identA}}},
-		{cmdMyCmd, []ExpressionNode{&AddressNode{2}}},
+		{
+			SourceInfo: sourceInfo(4, 4),
+			Type:       cmdMyCmd,
+			Args: []ExpressionNode{
+				&IdentifierNode{
+					SourceInfo: sourceInfo(4, 10),
+					Identifier: identA,
+				},
+			},
+		},
+		{
+			SourceInfo: sourceInfo(5, 4),
+			Type:       cmdMyCmd,
+			Args: []ExpressionNode{
+				&AddressNode{
+					SourceInfo: sourceInfo(5, 11),
+					Address:    0,
+				},
+			},
+		},
+		{
+			SourceInfo: sourceInfo(4, 4),
+			Type:       cmdMyCmd,
+			Args: []ExpressionNode{
+				&IdentifierNode{
+					SourceInfo: sourceInfo(4, 10),
+					Identifier: identA,
+				},
+			},
+		},
+		{
+			SourceInfo: sourceInfo(5, 4),
+			Type:       cmdMyCmd,
+			Args: []ExpressionNode{
+				&AddressNode{
+					SourceInfo: sourceInfo(5, 11),
+					Address:    2,
+				},
+			},
+		},
 	}
 
 	require.Equal(t, expectedCommands, commands)
@@ -355,17 +727,43 @@ func TestParser_Defines(t *testing.T) {
 	require.NoError(t, err)
 
 	expectedCommands := []*CommandNode{
-		{cmdMyCmd, []ExpressionNode{&StringNode{"Hello World!"}, &BinaryOpNode{&IntegerNode{2}, &Token{SHL, "<<"}, &IntegerNode{1}}}},
+		{
+			SourceInfo: sourceInfo(5, 3),
+			Type:       cmdMyCmd,
+			Args: []ExpressionNode{
+				&StringNode{
+					SourceInfo: sourceInfo(2, 17),
+					Value:      "Hello World!",
+				},
+				&BinaryOpNode{
+					SourceInfo: sourceInfo(3, 19),
+					Left: &IntegerNode{
+						SourceInfo: sourceInfo(3, 17),
+						Value:      2,
+					},
+					Operator: &Token{
+						SourceInfo: sourceInfo(3, 19),
+						Type:       SHL,
+						Value:      "<<",
+					},
+					Right: &IntegerNode{
+						SourceInfo: sourceInfo(3, 22),
+						Value:      1,
+					},
+				},
+			},
+		},
 	}
 
 	require.Equal(t, expectedCommands, commands)
 
 	expecteddefines := map[string]ExpressionNode{
-		"msgHello": &StringNode{"Hello World!"},
+		"msgHello": &StringNode{SourceInfo: sourceInfo(2, 17), Value: "Hello World!"},
 		"wordCount": &BinaryOpNode{
-			Left:     &IntegerNode{2},
-			Operator: &Token{SHL, "<<"},
-			Right:    &IntegerNode{1},
+			SourceInfo: sourceInfo(3, 19),
+			Left:       &IntegerNode{SourceInfo: sourceInfo(3, 17), Value: 2},
+			Operator:   &Token{SourceInfo: sourceInfo(3, 19), Type: SHL, Value: "<<"},
+			Right:      &IntegerNode{SourceInfo: sourceInfo(3, 22), Value: 1},
 		},
 	}
 
@@ -386,7 +784,20 @@ func TestParser_Variables(t *testing.T) {
 	require.NoError(t, err)
 
 	expectedCommands := []*CommandNode{
-		{cmdMyCmd, []ExpressionNode{&IdentifierNode{VariableOffset}, &IntegerNode{42}}},
+		{
+			SourceInfo: sourceInfo(3, 3),
+			Type:       cmdMyCmd,
+			Args: []ExpressionNode{
+				&IdentifierNode{
+					SourceInfo: sourceInfo(3, 9),
+					Identifier: VariableOffset,
+				},
+				&IntegerNode{
+					SourceInfo: sourceInfo(3, 15),
+					Value:      42,
+				},
+			},
+		},
 	}
 
 	require.Equal(t, expectedCommands, commands)
@@ -407,8 +818,26 @@ func TestParser_Strings(t *testing.T) {
 	require.NoError(t, err)
 
 	expectedCommands := []*CommandNode{
-		{cmdMyCmd, []ExpressionNode{&StringNode{"Hello World!"}}},
-		{cmdMyCmd, []ExpressionNode{&StringNode{"Strings can .contain all @sorts of -42.1337 # characters"}}},
+		{
+			SourceInfo: sourceInfo(2, 3),
+			Type:       cmdMyCmd,
+			Args: []ExpressionNode{
+				&StringNode{
+					SourceInfo: sourceInfo(2, 10),
+					Value:      "Hello World!",
+				},
+			},
+		},
+		{
+			SourceInfo: sourceInfo(3, 3),
+			Type:       cmdMyCmd,
+			Args: []ExpressionNode{
+				&StringNode{
+					SourceInfo: sourceInfo(3, 10),
+					Value:      "Strings can .contain all @sorts of -42.1337 # characters",
+				},
+			},
+		},
 	}
 
 	require.Equal(t, expectedCommands, commands)

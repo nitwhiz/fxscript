@@ -5,6 +5,12 @@ import (
 	"strconv"
 )
 
+type SourceInfo struct {
+	Filename string
+	Line     int
+	Column   int
+}
+
 type TokenType uint
 
 func (t TokenType) String() string {
@@ -71,6 +77,8 @@ func (t TokenType) String() string {
 		return "OR"
 	case DOLLAR:
 		return "DOLLAR"
+	case PREPROCESSOR:
+		return "PREPROCESSOR"
 	default:
 		return "MISSINGNAME(" + strconv.Itoa(int(t)) + ")"
 	}
@@ -121,6 +129,8 @@ const (
 
 	DOLLAR
 	PERCENT
+
+	PREPROCESSOR
 )
 
 const (
@@ -139,6 +149,7 @@ const (
 )
 
 type Token struct {
+	*SourceInfo
 	Type  TokenType
 	Value string
 }
@@ -154,9 +165,14 @@ var identKeywords = map[string]TokenType{
 	"endmacro": ENDMACRO,
 }
 
-func newToken(typ TokenType, value string) *Token {
+func (l *Lexer) newToken(typ TokenType, value string) *Token {
 	return &Token{
 		Type:  typ,
 		Value: value,
+		SourceInfo: &SourceInfo{
+			Filename: l.Filename(),
+			Line:     l.line,
+			Column:   l.col - len(value) + 1,
+		},
 	}
 }

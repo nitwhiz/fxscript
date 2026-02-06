@@ -10,36 +10,44 @@ type ExpressionNode interface {
 }
 
 type CommandNode struct {
+	*SourceInfo
 	Type CommandType
 	Args []ExpressionNode
 }
 
 type AddressNode struct {
+	*SourceInfo
 	Address int
 }
 
 type FloatNode struct {
+	*SourceInfo
 	Value float64
 }
 
 type IntegerNode struct {
+	*SourceInfo
 	Value int
 }
 
 type IdentifierNode struct {
+	*SourceInfo
 	Identifier Identifier
 }
 
 type StringNode struct {
+	*SourceInfo
 	Value string
 }
 
 type UnaryOpNode struct {
+	*SourceInfo
 	Operator *Token
 	Expr     ExpressionNode
 }
 
 type BinaryOpNode struct {
+	*SourceInfo
 	Left     ExpressionNode
 	Operator *Token
 	Right    ExpressionNode
@@ -54,8 +62,18 @@ func (n *BinaryOpNode) exprNode()   {}
 func (n *UnaryOpNode) exprNode()    {}
 
 func (n *CommandNode) String() string {
+	var fname string
+
+	if n.Filename == "" {
+		fname = "<script>"
+	} else {
+		fname = n.Filename
+	}
+
+	prefix := fmt.Sprintf("%s:%d:%d", fname, n.Line, n.Column)
+
 	if len(n.Args) == 0 {
-		return fmt.Sprintf("CMD(%02d)", n.Type)
+		return fmt.Sprintf("%s CMD(%02d)", prefix, n.Type)
 	}
 
 	args := make([]string, len(n.Args))
@@ -66,7 +84,7 @@ func (n *CommandNode) String() string {
 
 	argStr := strings.Join(args, ", ")
 
-	return fmt.Sprintf("CMD(%02d, %s)", n.Type, argStr)
+	return fmt.Sprintf("%s CMD(%02d, %s)", prefix, n.Type, argStr)
 }
 
 func (n *FloatNode) String() string {
