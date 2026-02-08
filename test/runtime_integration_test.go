@@ -182,7 +182,6 @@ func TestIntegration(t *testing.T) {
 					expectedString := string(expectLine[1 : len(expectLine)-1])
 
 					require.EqualValues(t, expectedString, value, "value mismatch at EXPECT line "+strconv.Itoa(currentLineInFile))
-					break
 				default:
 					if bytes.Contains(expectLine, []byte(".")) {
 						t.Log(value)
@@ -211,7 +210,6 @@ func TestIntegration(t *testing.T) {
 						require.NoError(t, err, "unable to parse int64 at EXPECT line "+strconv.Itoa(currentLineInFile))
 						require.EqualValues(t, int(expectedInt), value, "value mismatch at EXPECT line "+strconv.Itoa(currentLineInFile))
 					}
-					break
 				}
 
 				rPtr++

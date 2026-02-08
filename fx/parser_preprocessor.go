@@ -71,8 +71,6 @@ func (p *Parser) parsePreprocessorDirective() (err error) {
 		err = p.prepDefLookup(segments[1])
 
 		return
-	default:
-		break
 	}
 
 	return

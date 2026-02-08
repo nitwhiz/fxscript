@@ -101,55 +101,38 @@ func evalOp[T numeric](op *fx.Token, a, b T) (v T, err error) {
 	switch op.Type {
 	case fx.ADD:
 		v = add(a, b)
-		break
 	case fx.SUB:
 		v = sub(a, b)
-		break
 	case fx.MUL:
 		v = mul(a, b)
-		break
 	case fx.DIV:
 		v = div(a, b)
-		break
 	case fx.PERCENT:
 		v = T(mod(a, b))
-		break
 	case fx.LT:
 		v = T(lt(a, b))
-		break
 	case fx.GT:
 		v = T(gt(a, b))
-		break
 	case fx.LTE:
 		v = T(lte(a, b))
-		break
 	case fx.GTE:
 		v = T(gte(a, b))
-		break
 	case fx.EQ:
 		v = T(eq(a, b))
-		break
 	case fx.NEQ:
 		v = T(neq(a, b))
-		break
 	case fx.SHL:
 		v = T(shl(a, b))
-		break
 	case fx.SHR:
 		v = T(shr(a, b))
-		break
 	case fx.AND:
 		v = T(and(a, b))
-		break
 	case fx.OR:
 		v = T(or(a, b))
-		break
 	case fx.INV:
 		v = T(xor(a, b))
-		break
 	default:
 		err = &fx.SyntaxError{op.SourceInfo, &fx.UnknownOperatorError{TokenType: op.Type}}
-		break
 	}
 
 	return
@@ -161,25 +144,19 @@ func (f *Frame) evalPointer(n *fx.UnaryOpNode) (v any, ok bool, err error) {
 		switch e := n.Expr.(type) {
 		case *fx.IdentifierNode:
 			v = int(e.Identifier)
-			break
 		case *fx.IntegerNode:
 			v = e.Value
-			break
 		default:
 			v, err = f.Eval(n.Expr)
 
 			switch v.(type) {
 			case fx.Identifier:
 				v = int(v.(fx.Identifier))
-				break
 			case int:
 				v = v.(int)
-				break
 			default:
 				err = &fx.RuntimeError{n.SourceInfo, &fx.UnresolvedSymbolError{fmt.Sprintf("%+v", v)}}
 			}
-
-			break
 		}
 
 		ok = true
@@ -189,26 +166,19 @@ func (f *Frame) evalPointer(n *fx.UnaryOpNode) (v any, ok bool, err error) {
 		switch e := n.Expr.(type) {
 		case *fx.IdentifierNode:
 			v = f.getValue(e.Identifier)
-			break
 		case *fx.IntegerNode:
 			v = f.getValue(fx.Identifier(e.Value))
-			break
 		default:
 			v, err = f.Eval(n.Expr)
 
 			switch v.(type) {
 			case fx.Identifier:
 				v = f.getValue(v.(fx.Identifier))
-				break
 			case int:
 				v = f.getValue(fx.Identifier(v.(int)))
-				break
 			default:
 				err = &fx.RuntimeError{n.SourceInfo, &fx.UnresolvedSymbolError{fmt.Sprintf("%+v", v)}}
-				break
 			}
-
-			break
 		}
 
 		ok = true
@@ -239,19 +209,15 @@ func (f *Frame) evalUnaryOp(n *fx.UnaryOpNode) (v any, err error) {
 		switch o := v.(type) {
 		case int:
 			v = -o
-			break
 		case float64:
 			v = -o
-			break
 		}
 	case fx.INV:
 		switch o := v.(type) {
 		case int:
 			v = ^o
-			break
 		case float64:
 			v = ^int(o)
-			break
 		}
 	case fx.EXCL:
 		switch o := v.(type) {
@@ -261,11 +227,9 @@ func (f *Frame) evalUnaryOp(n *fx.UnaryOpNode) (v any, err error) {
 			} else {
 				v = 1
 			}
-			break
 		}
 	default:
 		err = &fx.SyntaxError{n.SourceInfo, &fx.UnknownOperatorError{TokenType: n.Operator.Type}}
-		break
 	}
 
 	return
@@ -341,25 +305,18 @@ func (f *Frame) Eval(node fx.ExpressionNode) (v any, err error) {
 	switch n := node.(type) {
 	case *fx.BinaryOpNode:
 		v, err = f.evalBinaryOp(n)
-		break
 	case *fx.UnaryOpNode:
 		v, err = f.evalUnaryOp(n)
-		break
 	case *fx.StringNode:
 		v = n.Value
-		break
 	case *fx.IntegerNode:
 		v = n.Value
-		break
 	case *fx.FloatNode:
 		v = n.Value
-		break
 	case *fx.IdentifierNode:
 		v = f.getValue(n.Identifier)
-		break
 	case *fx.AddressNode:
 		v = n.Address
-		break
 	}
 
 	return

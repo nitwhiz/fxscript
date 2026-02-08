@@ -206,7 +206,25 @@ func (p *Parser) parseNumber(tok *Token) (expr ExpressionNode, err error) {
 
 	var val int64
 
-	if val, err = strconv.ParseInt(tok.Value, 10, 64); err != nil {
+	intBase := 10
+	intValue := tok.Value
+
+	if len(intValue) > 2 {
+		switch intValue[1] {
+		case 'x':
+			intBase = 16
+		case 'o':
+			intBase = 8
+		case 'b':
+			intBase = 2
+		}
+	}
+
+	if intBase != 10 {
+		intValue = intValue[2:]
+	}
+
+	if val, err = strconv.ParseInt(intValue, intBase, 64); err != nil {
 		return
 	}
 

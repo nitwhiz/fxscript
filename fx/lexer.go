@@ -8,6 +8,22 @@ func isDigit(c byte) bool {
 	return c >= '0' && c <= '9'
 }
 
+func isHexDigit(c byte) bool {
+	return isDigit(c) || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')
+}
+
+func isBinDigit(c byte) bool {
+	return c == '0' || c == '1'
+}
+
+func isOctDigit(c byte) bool {
+	return c >= '0' && c <= '7'
+}
+
+func isBasePrefix(c byte) bool {
+	return c == 'b' || c == 'o' || c == 'x'
+}
+
 func isWhitespace(c byte) bool {
 	return c == ' ' || c == '\t'
 }
@@ -156,11 +172,21 @@ func (l *Lexer) lexIdent() *Token {
 
 func (l *Lexer) lexNumber() *Token {
 	n := 0
+	basePrefix := byte(0)
 
 	for {
 		next := l.peekAhead(n)
 
-		if isDigit(next) || next == '.' {
+		if n > 0 && basePrefix == 0 && isBasePrefix(next) {
+			basePrefix = next
+			n++
+			continue
+		}
+
+		if (basePrefix == 0 && (isDigit(next) || next == '.')) ||
+			(basePrefix == 'x' && isHexDigit(next)) ||
+			(basePrefix == 'o' && isOctDigit(next)) ||
+			(basePrefix == 'b' && isBinDigit(next)) {
 			n++
 		} else {
 			break
@@ -177,66 +203,45 @@ func (l *Lexer) lexOperator() *Token {
 	switch string(l.peekAhead(1)) {
 	case SynEqual, SynLower, SynGreater:
 		opVal = string(l.advance()) + string(l.advance())
-		break
 	default:
 		opVal = string(l.advance())
-		break
 	}
 
 	switch opVal {
 	case SynAmpersand:
 		tokType = AND
-		break
 	case SynPipe:
 		tokType = OR
-		break
 	case SynExcl:
 		tokType = EXCL
-		break
 	case SynInv:
 		tokType = INV
-		break
 	case SynPlus:
 		tokType = ADD
-		break
 	case SynMinus:
 		tokType = SUB
-		break
 	case SynAsterisk:
 		tokType = MUL
-		break
 	case SynSlash:
 		tokType = DIV
-		break
 	case SynPercent:
 		tokType = PERCENT
-		break
 	case SynLower:
 		tokType = LT
-		break
 	case SynGreater:
 		tokType = GT
-		break
 	case SynLower + SynLower:
 		tokType = SHL
-		break
 	case SynGreater + SynGreater:
 		tokType = SHR
-		break
 	case SynLower + SynEqual:
 		tokType = LTE
-		break
 	case SynGreater + SynEqual:
 		tokType = GTE
-		break
 	case SynEqual + SynEqual:
 		tokType = EQ
-		break
 	case SynExcl + SynEqual:
 		tokType = NEQ
-		break
-	default:
-		break
 	}
 
 	return l.newToken(tokType, opVal)

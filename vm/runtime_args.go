@@ -93,41 +93,29 @@ func (f *Frame) unmarshalArgs(argv []fx.ExpressionNode, v any) (err error) {
 						switch v := rawValue.(type) {
 						case int:
 							valField.Set(reflect.ValueOf(fx.Identifier(v)))
-							break
 						case float64:
 							valField.Set(reflect.ValueOf(fx.Identifier(int(v))))
-							break
 						default:
 							err = &ArgumentTypeError{argIdx, typField.Name, typField.Type.Name(), fmt.Errorf("unsupported type: %T", rawValue)}
 							return
 						}
 					}
-					break
 				case int:
 					switch numericValue := rawValue.(type) {
 					case int:
 						valField.Set(reflect.ValueOf(numericValue))
-						break
 					case float64:
 						valField.Set(reflect.ValueOf(int(numericValue)))
-						break
 					}
-
-					break
 				case float64:
 					switch numericValue := rawValue.(type) {
 					case float64:
 						valField.Set(reflect.ValueOf(numericValue))
-						break
 					case int:
 						valField.Set(reflect.ValueOf(float64(numericValue)))
-						break
 					}
-
-					break
 				case string:
 					valField.Set(reflect.ValueOf(rawValue))
-					break
 				default:
 					err = &ArgumentTypeError{argIdx, typField.Name, typField.Type.Name(), fmt.Errorf("unsupported type: %T", rawValue)}
 					return
