@@ -177,11 +177,11 @@ func TestIntegration(t *testing.T) {
 				case '"':
 					t.Log(value)
 
-					require.IsType(t, "", value, "result expected to be a string at EXPECT line "+strconv.Itoa(currentLineInFile))
+					require.IsType(t, "", value, "result expected to be a string at EXPECT line "+scriptPath+":"+strconv.Itoa(currentLineInFile))
 
 					expectedString := string(expectLine[1 : len(expectLine)-1])
 
-					require.EqualValues(t, expectedString, value, "value mismatch at EXPECT line "+strconv.Itoa(currentLineInFile))
+					require.EqualValues(t, expectedString, value, "value mismatch at EXPECT line "+scriptPath+":"+strconv.Itoa(currentLineInFile))
 				default:
 					if bytes.Contains(expectLine, []byte(".")) {
 						t.Log(value)
@@ -189,26 +189,26 @@ func TestIntegration(t *testing.T) {
 						valueKind := reflect.ValueOf(value).Kind()
 
 						if valueKind != reflect.Float64 {
-							t.Fatal("result is expected to be a float64 at EXPECT line " + strconv.Itoa(currentLineInFile))
+							t.Fatal("result is expected to be a float64 at EXPECT line " + scriptPath + ":" + strconv.Itoa(currentLineInFile))
 						}
 
 						expectedFloat, err := strconv.ParseFloat(string(expectLine), 64)
 
-						require.NoError(t, err, "unable to parse float64 at EXPECT line "+strconv.Itoa(currentLineInFile))
-						require.EqualValues(t, expectedFloat, value, "value mismatch at EXPECT line "+strconv.Itoa(currentLineInFile))
+						require.NoError(t, err, "unable to parse float64 at EXPECT line "+scriptPath+":"+strconv.Itoa(currentLineInFile))
+						require.EqualValues(t, expectedFloat, value, "value mismatch at EXPECT line "+scriptPath+":"+strconv.Itoa(currentLineInFile))
 					} else {
 						t.Log(value)
 
 						valueKind := reflect.ValueOf(value).Kind()
 
 						if valueKind != reflect.Int {
-							t.Fatal("result is expected to be an int at EXPECT line " + strconv.Itoa(currentLineInFile))
+							t.Fatal("result is expected to be an int at EXPECT line " + scriptPath + ":" + strconv.Itoa(currentLineInFile))
 						}
 
 						expectedInt, err := strconv.ParseInt(string(expectLine), 10, 64)
 
-						require.NoError(t, err, "unable to parse int64 at EXPECT line "+strconv.Itoa(currentLineInFile))
-						require.EqualValues(t, int(expectedInt), value, "value mismatch at EXPECT line "+strconv.Itoa(currentLineInFile))
+						require.NoError(t, err, "unable to parse int64 at EXPECT line "+scriptPath+":"+strconv.Itoa(currentLineInFile))
+						require.EqualValues(t, int(expectedInt), value, "value mismatch at EXPECT line "+scriptPath+":"+strconv.Itoa(currentLineInFile))
 					}
 				}
 

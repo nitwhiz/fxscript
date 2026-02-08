@@ -87,9 +87,21 @@ func (f *Frame) unmarshalArgs(argv []fx.ExpressionNode, v any) (err error) {
 
 				switch valField.Interface().(type) {
 				case fx.Identifier:
-					if identNode, ok := node.(*fx.IdentifierNode); ok {
-						valField.Set(reflect.ValueOf(identNode.Identifier))
-					} else {
+
+					switch n := node.(type) {
+					case *fx.IdentifierNode:
+						valField.Set(reflect.ValueOf(n.Identifier))
+					case *fx.ArrayAccessNode:
+						var addr int
+
+						addr, err = f.script.EvalArrayAccessAddress(n, f.resolveIdentifierValue)
+
+						if err != nil {
+							return
+						}
+
+						valField.Set(reflect.ValueOf(fx.Identifier(addr)))
+					default:
 						switch v := rawValue.(type) {
 						case int:
 							valField.Set(reflect.ValueOf(fx.Identifier(v)))
@@ -100,6 +112,7 @@ func (f *Frame) unmarshalArgs(argv []fx.ExpressionNode, v any) (err error) {
 							return
 						}
 					}
+
 				case int:
 					switch numericValue := rawValue.(type) {
 					case int:

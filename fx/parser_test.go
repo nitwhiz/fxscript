@@ -757,7 +757,7 @@ func TestParser_Defines(t *testing.T) {
 
 	require.Equal(t, expectedCommands, commands)
 
-	expecteddefines := map[string]ExpressionNode{
+	expectedDefines := map[string]ExpressionNode{
 		"msgHello": &StringNode{SourceInfo: sourceInfo(2, 17), Value: "Hello World!"},
 		"wordCount": &BinaryOpNode{
 			SourceInfo: sourceInfo(3, 19),
@@ -767,7 +767,7 @@ func TestParser_Defines(t *testing.T) {
 		},
 	}
 
-	require.Equal(t, expecteddefines, defines)
+	require.Equal(t, expectedDefines, defines)
 
 	require.Empty(t, labels)
 	require.Empty(t, macros)
@@ -794,6 +794,44 @@ func TestParser_Variables(t *testing.T) {
 				},
 				&IntegerNode{
 					SourceInfo: sourceInfo(3, 15),
+					Value:      42,
+				},
+			},
+		},
+	}
+
+	require.Equal(t, expectedCommands, commands)
+
+	require.Empty(t, defines)
+	require.Empty(t, labels)
+	require.Empty(t, macros)
+}
+
+func TestParser_ArrayVariables(t *testing.T) {
+	script := `
+		var myArr[10]
+		myCmd myArr[2] 42
+	`
+
+	commands, defines, labels, macros, err := parse(script)
+
+	require.NoError(t, err)
+
+	expectedCommands := []*CommandNode{
+		{
+			SourceInfo: sourceInfo(3, 3),
+			Type:       cmdMyCmd,
+			Args: []ExpressionNode{
+				&ArrayAccessNode{
+					SourceInfo: sourceInfo(3, 9),
+					Variable:   VariableOffset,
+					Index: &IntegerNode{
+						SourceInfo: sourceInfo(3, 15),
+						Value:      2,
+					},
+				},
+				&IntegerNode{
+					SourceInfo: sourceInfo(3, 18),
 					Value:      42,
 				},
 			},

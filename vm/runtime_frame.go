@@ -73,3 +73,12 @@ func (f *Frame) ExecuteCommand(cmd *fx.CommandNode) (pc int, jump bool, err erro
 
 	return
 }
+
+func (f *Frame) resolveIdentifierValue(identifier fx.Identifier) (v any) {
+	return f.getValue(identifier)
+
+}
+
+func (f *Frame) Eval(node fx.ExpressionNode) (v any, err error) {
+	return f.script.Eval(node, f.resolveIdentifierValue)
+}

@@ -361,6 +361,38 @@ func TestLexer_Variables(t *testing.T) {
 	require.Equal(t, expectedTokens, tokens)
 }
 
+func TestLexer_ArrayVariables(t *testing.T) {
+	script := `
+		var myArr[10]
+		myArr[0]
+	`
+
+	expectedTokens := []*Token{
+		tok(2, 6, VAR, ""),
+		tok(2, 7, IDENT, "myArr"),
+		tok(2, 13, LBRACKET, ""),
+		tok(2, 13, NUMBER, "10"),
+		tok(2, 16, RBRACKET, ""),
+		tok(3, 1, NEWLINE, ""),
+		tok(3, 3, IDENT, "myArr"),
+		tok(3, 9, LBRACKET, ""),
+		tok(3, 9, NUMBER, "0"),
+		tok(3, 11, RBRACKET, ""),
+		tok(4, 1, NEWLINE, ""),
+		{
+			SourceInfo: nil,
+			Type:       EOF,
+			Value:      "",
+		},
+	}
+
+	l := NewLexer([]byte(script), "test.fx")
+
+	tokens := l.Lex()
+
+	require.Equal(t, expectedTokens, tokens)
+}
+
 func TestLexer_Strings(t *testing.T) {
 	script := `
 		"Hello World!"

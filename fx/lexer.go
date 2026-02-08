@@ -57,7 +57,8 @@ type Lexer struct {
 
 func NewLexer(source []byte, filename string) *Lexer {
 	l := Lexer{
-		source:    source,
+		source: source,
+
 		sourceLen: len(source),
 		pos:       0,
 
@@ -307,6 +308,12 @@ func (l *Lexer) lexNextToken() *Token {
 	case ')':
 		l.advance()
 		return l.newToken(RPAREN, "")
+	case '[':
+		l.advance()
+		return l.newToken(LBRACKET, "")
+	case ']':
+		l.advance()
+		return l.newToken(RBRACKET, "")
 	case '$':
 		l.advance()
 		return l.newToken(DOLLAR, "")

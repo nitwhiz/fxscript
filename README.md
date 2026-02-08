@@ -153,6 +153,7 @@ end:
 
 - `def name value`: Script-level Define. Somewhat like a `#define` in C, but only for expressions.
 - `var name`: Declares a script-level variable. The runtime will automatically assign an address to this variable.
+- `var name[size]`: Declares a script-level array variable. `size` must be a static expression.
 - `macro name ... endmacro`: Defines a macro. [See Macros](#macros) for details.
 - `@include "file"`: Includes another file during preprocessing. Requires `fs.FS` to be provided in `ParserConfig`.
 - `@def <argument>`: Can be used to inject anything as definition. Using the `LookupFn` provided in `ParserConfig`. The directive is replaced with `def <lookup return value>`.
@@ -199,6 +200,34 @@ my_loop 20
 - `call <label/addr>`: Calls subroutine at label or address.
 - `ret`: Returns from subroutine.
 - `jumpIf <condition>, <label/addr>`: Jumps to target if `<condition>` evaluates to a non-zero value.
+
+### Array Variables
+
+Array variables are declared using the `var` directive with a size in square brackets. The size must be an expression that can be evaluated at parse time.
+
+```
+def SIZE 3
+var my_array[SIZE]
+
+set my_array[0], 10
+set my_array[1], 20
+set my_array[2], 30
+
+set A, my_array[1]
+```
+
+Arrays are stored in sequential memory addresses. You can use the address operator `&` to get the base address and use pointer arithmetic to access elements:
+
+```
+set &my_array + 1, 42 // same as set my_array[1], 42
+```
+
+Array indices can also be dynamic expressions:
+
+```
+set i, 2
+set my_array[i], 100
+```
 
 ## Custom Commands
 

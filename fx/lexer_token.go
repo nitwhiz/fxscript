@@ -55,6 +55,10 @@ func (t TokenType) String() string {
 		return "LPAREN"
 	case RPAREN:
 		return "RPAREN"
+	case LBRACKET:
+		return "LBRACKET"
+	case RBRACKET:
+		return "RBRACKET"
 	case ADD:
 		return "ADD"
 	case SUB:
@@ -116,6 +120,8 @@ const (
 
 	LPAREN
 	RPAREN
+	LBRACKET
+	RBRACKET
 
 	ADD
 	SUB

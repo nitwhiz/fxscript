@@ -1,10 +1,5 @@
 package fx
 
-import (
-	"strconv"
-	"strings"
-)
-
 var eofToken = &Token{Type: EOF, Value: ""}
 
 var _ TokenSource = (*Lexer)(nil)
@@ -124,126 +119,6 @@ func (p *Parser) parseLabel(script *Script, tok *Token) (expr ExpressionNode, er
 	return
 }
 
-func (p *Parser) resolveIdent(script *Script, tok *Token) (expr ExpressionNode, err error) {
-	var ok bool
-
-	if expr, ok = script.defines[tok.Value]; ok {
-		return
-	}
-
-	var varIdent int
-
-	if varIdent, ok = script.variables[tok.Value]; ok {
-		expr = &IdentifierNode{
-			Identifier: Identifier(varIdent),
-			SourceInfo: tok.SourceInfo,
-		}
-		return
-	}
-
-	var identifier Identifier
-
-	if identifier, ok = p.getIdentifier(tok.Value); ok {
-		expr = &IdentifierNode{
-			Identifier: identifier,
-			SourceInfo: tok.SourceInfo,
-		}
-		return
-	}
-
-	return p.parseLabel(script, tok)
-}
-
-func (p *Parser) parseUnary(script *Script, tok *Token) (expr *UnaryOpNode, err error) {
-	var operand ExpressionNode
-
-	if operand, err = p.parsePrimary(script); err != nil {
-		return
-	}
-
-	expr = &UnaryOpNode{
-		Operator:   tok,
-		Expr:       operand,
-		SourceInfo: tok.SourceInfo,
-	}
-	return
-}
-
-func (p *Parser) parseExpressionInParens(script *Script) (expr ExpressionNode, err error) {
-	if expr, err = p.parseExpression(script); err != nil {
-		return
-	}
-
-	var tok *Token
-
-	if tok, err = p.advance(); err != nil {
-		return
-	}
-
-	if tok.Type != RPAREN {
-		err = &SyntaxError{tok.SourceInfo, &UnexpectedTokenError{[]TokenType{RPAREN}, tok}}
-		return
-	}
-
-	return
-}
-
-func (p *Parser) parseNumber(tok *Token) (expr ExpressionNode, err error) {
-	if strings.Contains(tok.Value, ".") {
-		var val float64
-
-		if val, err = strconv.ParseFloat(tok.Value, 64); err != nil {
-			return
-		}
-
-		expr = &FloatNode{
-			Value:      val,
-			SourceInfo: tok.SourceInfo,
-		}
-
-		return
-	}
-
-	var val int64
-
-	intBase := 10
-	intValue := tok.Value
-
-	if len(intValue) > 2 {
-		switch intValue[1] {
-		case 'x':
-			intBase = 16
-		case 'o':
-			intBase = 8
-		case 'b':
-			intBase = 2
-		}
-	}
-
-	if intBase != 10 {
-		intValue = intValue[2:]
-	}
-
-	if val, err = strconv.ParseInt(intValue, intBase, 64); err != nil {
-		return
-	}
-
-	expr = &IntegerNode{
-		Value:      int(val),
-		SourceInfo: tok.SourceInfo,
-	}
-
-	return
-}
-
-func (p *Parser) parseString(tok *Token) (expr ExpressionNode, err error) {
-	expr = &StringNode{
-		Value:      tok.Value,
-		SourceInfo: tok.SourceInfo,
-	}
-	return
-}
-
 func (p *Parser) parseDefine(script *Script) (err error) {
 	if _, err = p.advance(); err != nil {
 		return
@@ -256,22 +131,6 @@ func (p *Parser) parseDefine(script *Script) (err error) {
 	}
 
 	script.defines[nameIdent.Value], err = p.parseExpression(script)
-
-	return
-}
-
-func (p *Parser) parseVariable(script *Script) (err error) {
-	if _, err = p.advance(); err != nil {
-		return
-	}
-
-	var nameIdent *Token
-
-	if nameIdent, err = p.advance(); err != nil {
-		return
-	}
-
-	script.addVariable(nameIdent.Value)
 
 	return
 }
@@ -416,21 +275,21 @@ func (p *Parser) parseLabelDeclaration(script *Script, prefixed bool) (err error
 	return
 }
 
-func (p *Parser) parseIdent(script *Script, tok *Token) (err error) {
-	var tok1 *Token
+func (p *Parser) dispatchFirstClassIdentParse(script *Script, tok *Token) (err error) {
+	var next1 *Token
 
-	if tok1, err = p.peekAhead(1); err != nil {
+	if next1, err = p.peekAhead(1); err != nil {
 		return
 	}
 
-	if tok.Type == PERCENT && tok1.Type == IDENT {
-		var tok2 *Token
+	if tok.Type == PERCENT && next1.Type == IDENT {
+		var next2 *Token
 
-		if tok2, err = p.peekAhead(2); err != nil {
+		if next2, err = p.peekAhead(2); err != nil {
 			return
 		}
 
-		if tok2.Type == COLON {
+		if next2.Type == COLON {
 			if _, err = p.advance(); err != nil {
 				return
 			}
@@ -438,7 +297,7 @@ func (p *Parser) parseIdent(script *Script, tok *Token) (err error) {
 			err = p.parseLabelDeclaration(script, true)
 			return
 		}
-	} else if tok.Type == IDENT && tok1.Type == COLON {
+	} else if tok.Type == IDENT && next1.Type == COLON {
 		err = p.parseLabelDeclaration(script, false)
 		return
 	}
@@ -476,11 +335,11 @@ func (p *Parser) parseNextNode(script *Script, end TokenType) (ok bool, err erro
 			return
 		}
 	case VAR:
-		if err = p.parseVariable(script); err != nil {
+		if err = p.parseVariableDeclaration(script); err != nil {
 			return
 		}
 	case PERCENT, IDENT:
-		if err = p.parseIdent(script, tok); err != nil {
+		if err = p.dispatchFirstClassIdentParse(script, tok); err != nil {
 			return
 		}
 	case NEWLINE:

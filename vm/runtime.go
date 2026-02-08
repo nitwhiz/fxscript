@@ -53,7 +53,7 @@ func NewRuntime(s *fx.Script, cfg *RuntimeConfig) *Runtime {
 func (r *Runtime) setMemory(variable fx.Identifier, value int) {
 	addr := int(variable - fx.VariableOffset)
 
-	if addr > len(r.memory) {
+	if addr >= len(r.memory) {
 		return
 	}
 

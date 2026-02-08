@@ -7,26 +7,40 @@ const VariableOffset = 1024 * 16
 type Script struct {
 	commands []*CommandNode
 
-	labels    map[string]int
-	symbols   map[string][]*AddressNode
-	defines   map[string]ExpressionNode
-	macros    map[string]*Macro
-	variables map[string]int
+	labels  map[string]int
+	symbols map[string][]*AddressNode
+	defines map[string]ExpressionNode
+	macros  map[string]*Macro
+
+	variables     map[string]int
+	variableNames map[int]string
 }
 
 func newScript() *Script {
 	return &Script{
-		commands:  make([]*CommandNode, 0),
-		labels:    make(map[string]int),
-		symbols:   make(map[string][]*AddressNode),
-		defines:   make(map[string]ExpressionNode),
-		macros:    make(map[string]*Macro),
-		variables: make(map[string]int),
+		commands: make([]*CommandNode, 0),
+
+		labels:  make(map[string]int),
+		symbols: make(map[string][]*AddressNode),
+		defines: make(map[string]ExpressionNode),
+		macros:  make(map[string]*Macro),
+
+		variables:     make(map[string]int),
+		variableNames: make(map[int]string),
 	}
 }
 
-func (s *Script) addVariable(varName string) {
-	s.variables[varName] = VariableOffset + len(s.variables)
+func (s *Script) addVariable(varName string) (offset int) {
+	offset = VariableOffset + len(s.variables)
+
+	s.addVariableWithOffset(varName, offset)
+
+	return
+}
+
+func (s *Script) addVariableWithOffset(varName string, offset int) {
+	s.variables[varName] = offset
+	s.variableNames[offset] = varName
 }
 
 func (s *Script) addSymbol(label string, addr *AddressNode) {

@@ -132,3 +132,20 @@ type InvalidPreprocessorValueError struct {
 func (e *InvalidPreprocessorValueError) Error() string {
 	return fmt.Sprintf("invalid preprocessor value for directive %s: %s", e.Directive, e.Value)
 }
+
+type ParseError struct {
+	*SourceInfo
+	Err error
+}
+
+func (e *ParseError) Error() string {
+	return fmt.Sprintf("parse error at %s: %s", e.SourceInfo, e.Err)
+}
+
+type UnexpectedTypeError struct {
+	TypeName string
+}
+
+func (e *UnexpectedTypeError) Error() string {
+	return fmt.Sprintf("unexpected type '%s'", e.TypeName)
+}

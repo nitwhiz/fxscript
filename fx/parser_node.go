@@ -53,13 +53,20 @@ type BinaryOpNode struct {
 	Right    ExpressionNode
 }
 
-func (n *FloatNode) exprNode()      {}
-func (n *IntegerNode) exprNode()    {}
-func (n *IdentifierNode) exprNode() {}
-func (n *StringNode) exprNode()     {}
-func (n *AddressNode) exprNode()    {}
-func (n *BinaryOpNode) exprNode()   {}
-func (n *UnaryOpNode) exprNode()    {}
+type ArrayAccessNode struct {
+	*SourceInfo
+	Variable Identifier
+	Index    ExpressionNode
+}
+
+func (n *FloatNode) exprNode()       {}
+func (n *IntegerNode) exprNode()     {}
+func (n *IdentifierNode) exprNode()  {}
+func (n *StringNode) exprNode()      {}
+func (n *AddressNode) exprNode()     {}
+func (n *BinaryOpNode) exprNode()    {}
+func (n *UnaryOpNode) exprNode()     {}
+func (n *ArrayAccessNode) exprNode() {}
 
 func (n *CommandNode) String() string {
 	prefix := n.SourceInfo.String()
@@ -105,4 +112,8 @@ func (n *BinaryOpNode) String() string {
 
 func (n *UnaryOpNode) String() string {
 	return fmt.Sprintf("UNARY(%s, %s)", n.Operator, n.Expr)
+}
+
+func (n *ArrayAccessNode) String() string {
+	return fmt.Sprintf("AT(%d, %s)", n.Variable, n.Index)
 }
