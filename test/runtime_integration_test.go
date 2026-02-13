@@ -45,7 +45,7 @@ func init() {
 type TestEnv struct {
 	t testing.TB
 
-	values  map[fx.Identifier]int
+	memory  map[fx.Identifier]int
 	results []any
 }
 
@@ -53,17 +53,17 @@ func NewTestEnv(t testing.TB) *TestEnv {
 	return &TestEnv{
 		t: t,
 
-		values:  make(map[fx.Identifier]int),
+		memory:  make(map[fx.Identifier]int),
 		results: make([]any, 0),
 	}
 }
 
 func (env *TestEnv) Get(identifier fx.Identifier) (value int) {
-	return env.values[identifier]
+	return env.memory[identifier]
 }
 
 func (env *TestEnv) Set(identifier fx.Identifier, value int) {
-	env.values[identifier] = value
+	env.memory[identifier] = value
 }
 
 func (env *TestEnv) HandleError(err error) {
@@ -141,7 +141,8 @@ func TestIntegration(t *testing.T) {
 
 			require.NoError(t, err)
 
-			vm.NewRuntime(fxs, rtCfg).Start(0, e)
+			rt := vm.NewRuntime(fxs, rtCfg)
+			rt.Start(0, e)
 
 			expectLines := bytes.Split(segments[1], []byte("\n"))
 

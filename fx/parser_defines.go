@@ -4,6 +4,18 @@ type CommandType int
 
 type Identifier int
 
+func (i Identifier) IsVariable() bool {
+	return i >= VariableOffset
+}
+
+func (i Identifier) RealAddress() int {
+	if i.IsVariable() {
+		return int(i) - VariableOffset
+	}
+
+	return int(i)
+}
+
 type CommandTypeTable map[string]CommandType
 
 type IdentifierTable map[string]Identifier

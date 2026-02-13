@@ -16,6 +16,31 @@ A simple mission script language parser and runtime for Go.
 go get -u github.com/nitwhiz/fxscript
 ```
 
+## Runtime Architecture
+
+FXScript separates execution into three main parts: Runtime, Environment, and Frame.
+
+### Runtime
+
+The `Runtime` holds the parsed script and registered command handlers. It provides the facilities to start and manage script execution via frames. A single `Runtime` instance can be reused across any number of concurrent or sequential executions, each with its own `Environment`.
+
+### Environment
+
+The `Environment` is an interface implemented by the host application. It is responsible for:
+- Providing and storing data (`Get`/`Set`).
+- Handling runtime errors.
+
+All script memory operations (reading or writing variables) are delegated to the `Environment`. This allows the host to control how memory is mapped and persisted.
+
+### Frame
+
+Every time a script execution starts (via `r.Start` or `r.Call`), a new `Frame` is created. Each `Frame` contains:
+- Its own Program Counter (PC).
+- A private Call Stack (for `call`/`ret` operations).
+- A private Operand Stack (for `push`/`pop` operations).
+
+Since each call spawns a new frame with its own stacks, multiple executions can run independently using the same `Runtime`.
+
 ## Basic Usage
 
 To use FXScript, you need to:

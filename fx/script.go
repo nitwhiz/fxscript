@@ -2,7 +2,7 @@ package fx
 
 import "fmt"
 
-const VariableOffset = 1024 * 16
+const VariableOffset = 1024 * 1024 * 16
 
 type Script struct {
 	commands []*CommandNode

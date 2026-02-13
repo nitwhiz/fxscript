@@ -20,19 +20,10 @@ type Frame struct {
 }
 
 func (f *Frame) setValue(identifier fx.Identifier, value int) {
-	if identifier >= fx.VariableOffset {
-		f.setMemory(identifier, value)
-		return
-	}
-
 	f.Environment.Set(identifier, value)
 }
 
 func (f *Frame) getValue(identifier fx.Identifier) (value int) {
-	if identifier >= fx.VariableOffset {
-		return f.getMemory(identifier)
-	}
-
 	return f.Environment.Get(identifier)
 }
 

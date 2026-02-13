@@ -1,6 +1,6 @@
 module github.com/nitwhiz/fxscript
 
-go 1.25.5
+go 1.26
 
 require (
 	github.com/nitwhiz/ring-buffer v0.0.0-20250825193715-5f9d967a3613

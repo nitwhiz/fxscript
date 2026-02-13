@@ -19,7 +19,6 @@ type Runtime struct {
 	handlers         []CommandHandler
 	callStackSize    int
 	operandStackSize int
-	memory           []int
 }
 
 func NewRuntime(s *fx.Script, cfg *RuntimeConfig) *Runtime {
@@ -41,35 +40,12 @@ func NewRuntime(s *fx.Script, cfg *RuntimeConfig) *Runtime {
 		handlers:         make([]CommandHandler, 0, fx.UserCommandOffset),
 		callStackSize:    callStackSize,
 		operandStackSize: operandStackSize,
-		memory:           make([]int, len(s.Variables())),
 	}
 
 	r.RegisterCommands(BaseCommands)
 	r.RegisterCommands(cfg.UserCommands)
 
 	return &r
-}
-
-func (r *Runtime) setMemory(variable fx.Identifier, value int) {
-	addr := int(variable - fx.VariableOffset)
-
-	if addr >= len(r.memory) {
-		return
-	}
-
-	r.memory[addr] = value
-}
-
-func (r *Runtime) getMemory(variable fx.Identifier) (value int) {
-	addr := int(variable - fx.VariableOffset)
-
-	if addr >= len(r.memory) {
-		value = 0
-		return
-	}
-
-	value = r.memory[addr]
-	return
 }
 
 func (r *Runtime) NewFrame(pc int, env Environment) *Frame {
@@ -108,4 +84,12 @@ func (r *Runtime) Call(label string, env Environment) bool {
 	}
 
 	return false
+}
+
+func (r *Runtime) Script() *fx.Script {
+	return r.script
+}
+
+func (r *Runtime) MemorySize() int {
+	return len(r.script.Variables())
 }
