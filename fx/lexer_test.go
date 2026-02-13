@@ -418,6 +418,60 @@ func TestLexer_Strings(t *testing.T) {
 	require.Equal(t, expectedTokens, tokens)
 }
 
+func TestLexer_EscapedNewlines(t *testing.T) {
+	script := "set \\\n  A, \\\n  42\n"
+
+	expectedTokens := []*Token{
+		tok(1, 1, IDENT, "set"),
+		tok(2, 3, IDENT, "A"),
+		tok(2, 5, COMMA, ""),
+		tok(3, 3, NUMBER, "42"),
+		tok(4, 1, NEWLINE, ""),
+		{
+			SourceInfo: nil,
+			Type:       EOF,
+			Value:      "",
+		},
+	}
+
+	l := NewLexer([]byte(script), "test.fx")
+	tokens := l.Lex()
+	require.Equal(t, expectedTokens, tokens)
+
+	scriptWithComments := "set \\ # comment\n A, \\  \n 42"
+	expectedTokensWithComments := []*Token{
+		tok(1, 1, IDENT, "set"),
+		tok(2, 2, IDENT, "A"),
+		tok(2, 4, COMMA, ""),
+		tok(3, 2, NUMBER, "42"),
+		{
+			SourceInfo: nil,
+			Type:       EOF,
+			Value:      "",
+		},
+	}
+
+	l = NewLexer([]byte(scriptWithComments), "test.fx")
+	tokens = l.Lex()
+	require.Equal(t, expectedTokensWithComments, tokens)
+
+	scriptIllegal := "set \\ 42"
+	expectedTokensIllegal := []*Token{
+		tok(1, 1, IDENT, "set"),
+		tok(1, 6, ILLEGAL, "\\"),
+		tok(1, 7, NUMBER, "42"),
+		{
+			SourceInfo: nil,
+			Type:       EOF,
+			Value:      "",
+		},
+	}
+
+	l = NewLexer([]byte(scriptIllegal), "test.fx")
+	tokens = l.Lex()
+	require.Equal(t, expectedTokensIllegal, tokens)
+}
+
 func TestLexer_EOF(t *testing.T) {
 	l := NewLexer([]byte{}, "test.fx")
 

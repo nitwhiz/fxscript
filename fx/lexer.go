@@ -279,6 +279,7 @@ func (l *Lexer) lexPreprocessor() (token *Token) {
 }
 
 func (l *Lexer) lexNextToken() *Token {
+lex:
 	for l.skipWhitespace() {
 	}
 
@@ -288,6 +289,19 @@ func (l *Lexer) lexNextToken() *Token {
 	case 0:
 		l.done = true
 		return eofToken
+	case '\\':
+		l.advance()
+		l.skipWhitespace()
+
+		if l.peek() == '\n' {
+			l.advance()
+			goto lex
+		} else if l.peek() == '#' {
+			l.skipComment()
+			goto lex
+		}
+
+		return l.newToken(ILLEGAL, "\\")
 	case '@':
 		return l.lexPreprocessor()
 	case ',':
@@ -295,10 +309,7 @@ func (l *Lexer) lexNextToken() *Token {
 		return l.newToken(COMMA, "")
 	case '\n':
 		l.advance()
-
-		tok := l.newToken(NEWLINE, "")
-
-		return tok
+		return l.newToken(NEWLINE, "")
 	case ':':
 		l.advance()
 		return l.newToken(COLON, "")
