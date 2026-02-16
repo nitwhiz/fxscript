@@ -114,24 +114,28 @@ func TestIntegration(t *testing.T) {
 
 			e := NewTestEnv(t)
 
+			hooks := vm.NewHooks()
+
+			hooks.PreExecute.Add(0, func(f *vm.Frame, cmd *fx.CommandNode) {
+				slog.Info("EXEC", slog.String("name", commandNames[cmd.Type]), slog.String("cmd", cmd.String()))
+			})
+
+			hooks.PostUnmarshalArgs.Add(0, func(args any) {
+				slog.Info("ARGS", slog.Any("args", args))
+
+			})
+
 			rtCfg := &vm.RuntimeConfig{
 				UserCommands: []*vm.Command{
 					{"eval", cmdEval, e.handleEval},
 					{"break", cmdBreakpoint, e.handleBreak},
 				},
 				Identifiers: identifiers,
-				Hooks: &vm.Hooks{
-					PreExecute: func(cmd *fx.CommandNode) {
-						slog.Info("EXEC", slog.String("name", commandNames[cmd.Type]), slog.String("cmd", cmd.String()))
-					},
-					PostUnmarshalArgs: func(args any) {
-						slog.Info("ARGS", slog.Any("args", args))
-					},
-				},
+				Hooks:       hooks,
 			}
 
 			parserConfig := rtCfg.ParserConfig(
-				fx.NewParserFS(os.DirFS("scripts/")),
+				fx.NewParserOsFS("scripts/"),
 				func(v string) ([]byte, error) {
 					return []byte(v + " \"hello world!\""), nil
 				},

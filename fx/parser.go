@@ -9,6 +9,7 @@ var _ TokenSource = (*TokenSlice)(nil)
 type TokenSource interface {
 	NextToken() (*Token, error)
 	Filename() string
+	SourceFile() *SourceFile
 }
 
 const (
@@ -16,7 +17,7 @@ const (
 )
 
 type ParserConfig struct {
-	FS       *ParserFS
+	FS       ParserFS
 	LookupFn LookupFn
 
 	CommandTypes CommandTypeTable
@@ -33,7 +34,7 @@ type Parser struct {
 
 	done bool
 
-	fs       *ParserFS
+	fs       ParserFS
 	lookupFn LookupFn
 }
 
@@ -158,7 +159,7 @@ func (p *Parser) parseCommand(script *Script) (err error) {
 			} else if macro != nil {
 				var tokSrc TokenSource
 
-				if tokSrc, err = macro.Body(macroArgs); err != nil {
+				if tokSrc, err = macro.Body(macroArgs, tok); err != nil {
 					return
 				}
 
@@ -270,7 +271,7 @@ func (p *Parser) parseLabelDeclaration(script *Script, prefixed bool) (err error
 		name = nameIdent.Value
 	}
 
-	script.labels[name] = script.PC()
+	script.labels[name] = len(script.commands)
 
 	return
 }

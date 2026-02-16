@@ -5,24 +5,6 @@ import (
 	"strconv"
 )
 
-type SourceInfo struct {
-	Filename string
-	Line     int
-	Column   int
-}
-
-func (s *SourceInfo) String() string {
-	var fName string
-
-	if s.Filename == "" {
-		fName = "<script>"
-	} else {
-		fName = s.Filename
-	}
-
-	return fmt.Sprintf("%s:%d:%d", fName, s.Line, s.Column)
-}
-
 type TokenType uint
 
 func (t TokenType) String() string {
@@ -188,9 +170,9 @@ func (l *Lexer) newToken(typ TokenType, value string) *Token {
 		Type:  typ,
 		Value: value,
 		SourceInfo: &SourceInfo{
-			Filename: l.Filename(),
-			Line:     l.line,
-			Column:   l.col - len(value) + 1,
+			File:   l.SourceFile(),
+			Line:   l.line,
+			Column: l.col - len(value) + 1,
 		},
 	}
 }

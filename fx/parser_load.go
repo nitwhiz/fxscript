@@ -1,43 +1,63 @@
 package fx
 
 import (
-	"io"
-	"io/fs"
+	"os"
 	"path"
 )
 
-type ParserFS struct {
-	fs.FS
-	path string
+type ParserFS interface {
+	ReadFile(name string) (string, []byte, error)
+	WithBasePath(path string) ParserFS
+	FilePath(name string) string
 }
 
-func (p *ParserFS) Open(name string) (fs.File, error) {
-	return p.FS.Open(path.Join(p.path, name))
+type ParserOsFS struct {
+	basePath string
 }
 
-func (p *ParserFS) WithPath(path string) *ParserFS {
-	return &ParserFS{p.FS, path}
+func (p *ParserOsFS) ReadFile(name string) (abs string, bs []byte, err error) {
+	if path.IsAbs(name) {
+		abs = name
+	} else {
+		abs = path.Join(p.basePath, name)
+	}
+
+	bs, err = os.ReadFile(abs)
+
+	return
 }
 
-func NewParserFS(fs fs.FS) *ParserFS {
-	return &ParserFS{fs, "."}
+func (p *ParserOsFS) WithBasePath(basePath string) ParserFS {
+	if !path.IsAbs(basePath) {
+		basePath = path.Join(p.basePath, basePath)
+	}
+
+	return NewParserOsFS(basePath)
+}
+
+func (p *ParserOsFS) FilePath(name string) string {
+	return path.Join(p.basePath, name)
+}
+
+func NewParserOsFS(basePath string) *ParserOsFS {
+	if !path.IsAbs(basePath) {
+		wd, _ := os.Getwd()
+		basePath = path.Join(wd, basePath)
+	}
+
+	return &ParserOsFS{basePath}
 }
 
 func (p *Parser) parseFile(fileName string) (err error) {
 	sfs := p.fs
 	srcFilename := p.src.Filename()
+	dirPath := path.Dir(fileName)
 
-	if srcFilename == "" {
-		srcFilename = ""
+	if dirPath != "" && dirPath != "." {
+		sfs = p.fs.WithBasePath(path.Join(path.Dir(srcFilename), dirPath))
 	}
 
-	dirPath := path.Join(path.Dir(srcFilename), path.Dir(fileName))
-
-	if dirPath != "" {
-		sfs = p.fs.WithPath(dirPath)
-	}
-
-	fullPath := path.Join(sfs.path, path.Base(fileName))
+	fullPath := sfs.FilePath(path.Base(fileName))
 
 	if _, ok := p.includedFiles[fullPath]; ok {
 		return
@@ -45,17 +65,9 @@ func (p *Parser) parseFile(fileName string) (err error) {
 
 	p.includedFiles[fullPath] = true
 
-	f, err := p.fs.Open(fullPath)
-
-	if err != nil {
-		return
-	}
-
-	defer f.Close()
-
 	var scriptData []byte
 
-	if scriptData, err = io.ReadAll(f); err != nil {
+	if _, scriptData, err = sfs.ReadFile(fullPath); err != nil {
 		return
 	}
 
@@ -69,19 +81,6 @@ func LoadScript(scriptData []byte, filename string, cfg *ParserConfig) (script *
 }
 
 func LoadFile(fileName string, cfg *ParserConfig) (script *Script, err error) {
-	f, err := cfg.FS.Open(fileName)
-
-	if err != nil {
-		return
-	}
-
-	bs, err := io.ReadAll(f)
-
-	if err != nil {
-		return
-	}
-
-	defer f.Close()
-
-	return NewParser(NewLexer(bs, fileName), cfg).Parse()
+	fileName, bs, err := cfg.FS.ReadFile(fileName)
+	return LoadScript(bs, fileName, cfg)
 }

@@ -2,7 +2,6 @@
   <configuration default="false" name="TEST ALL" type="GoTestRunConfiguration" factoryName="Go Test">
     <module name="fxscript" />
     <working_directory value="$PROJECT_DIR$" />
-    <useCustomBuildTags value="true" />
     <kind value="DIRECTORY" />
     <package value="github.com/nitwhiz/fxscript" />
     <directory value="$PROJECT_DIR$" />

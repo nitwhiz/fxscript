@@ -59,10 +59,6 @@ func (s *Script) String() (str string) {
 	return str
 }
 
-func (s *Script) PC() int {
-	return len(s.commands)
-}
-
 func (s *Script) Label(name string) (pc int, ok bool) {
 	pc, ok = s.labels[name]
 
@@ -76,6 +72,10 @@ func (s *Script) EndOfScript() (pc int) {
 func (s *Script) Define(name string) (v any, ok bool) {
 	v, ok = s.defines[name]
 	return
+}
+
+func (s *Script) Defines() map[string]ExpressionNode {
+	return s.defines
 }
 
 func (s *Script) Commands() []*CommandNode {

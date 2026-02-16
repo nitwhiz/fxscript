@@ -41,6 +41,7 @@ func isOperator(c byte) bool {
 }
 
 type Lexer struct {
+	files  map[string]*SourceFile
 	source []byte
 
 	pos       int
@@ -57,6 +58,7 @@ type Lexer struct {
 
 func NewLexer(source []byte, filename string) *Lexer {
 	l := Lexer{
+		files:  make(map[string]*SourceFile),
 		source: source,
 
 		sourceLen: len(source),
@@ -72,6 +74,17 @@ func NewLexer(source []byte, filename string) *Lexer {
 
 func (l *Lexer) Filename() string {
 	return l.filename
+}
+
+func (l *Lexer) SourceFile() *SourceFile {
+	f, ok := l.files[l.filename]
+
+	if !ok {
+		f = &SourceFile{l.filename}
+		l.files[l.filename] = f
+	}
+
+	return f
 }
 
 func (l *Lexer) peekAhead(n int) byte {
@@ -308,8 +321,9 @@ lex:
 		l.advance()
 		return l.newToken(COMMA, "")
 	case '\n':
+		tok := l.newToken(NEWLINE, "")
 		l.advance()
-		return l.newToken(NEWLINE, "")
+		return tok
 	case ':':
 		l.advance()
 		return l.newToken(COLON, "")

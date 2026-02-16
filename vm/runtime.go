@@ -34,8 +34,10 @@ func NewRuntime(s *fx.Script, cfg *RuntimeConfig) *Runtime {
 		operandStackSize = 64
 	}
 
-	r := Runtime{
-		hooks:            cfg.Hooks,
+	hooks := cfg.Hooks
+
+	r := &Runtime{
+		hooks:            hooks,
 		script:           s,
 		handlers:         make([]CommandHandler, 0, fx.UserCommandOffset),
 		callStackSize:    callStackSize,
@@ -45,7 +47,11 @@ func NewRuntime(s *fx.Script, cfg *RuntimeConfig) *Runtime {
 	r.RegisterCommands(BaseCommands)
 	r.RegisterCommands(cfg.UserCommands)
 
-	return &r
+	if cfg.Debug {
+		initDap(r, cfg.Identifiers)
+	}
+
+	return r
 }
 
 func (r *Runtime) NewFrame(pc int, env Environment) *Frame {
@@ -61,6 +67,8 @@ func (r *Runtime) NewFrame(pc int, env Environment) *Frame {
 // Start starts a new frame to run from a specific PC
 func (r *Runtime) Start(pc int, env Environment) {
 	f := r.NewFrame(pc, env)
+
+	r.preStart(f, pc)
 
 	commands := f.script.Commands()
 

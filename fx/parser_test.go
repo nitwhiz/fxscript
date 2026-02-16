@@ -34,8 +34,14 @@ func parse(script string) (commands []*CommandNode, defines map[string]Expressio
 	return s.Commands(), s.defines, s.labels, s.macros, nil
 }
 
-func sourceInfo(line, col int) *SourceInfo {
-	return &SourceInfo{Line: line, Column: col, Filename: ""}
+func sourceInfo(line, col int, parent ...*SourceInfo) *SourceInfo {
+	var p *SourceInfo
+
+	if len(parent) > 0 {
+		p = parent[0]
+	}
+
+	return &SourceInfo{File: noFile, Line: line, Column: col, Parent: p}
 }
 
 func TestParser_Ident(t *testing.T) {
@@ -600,31 +606,31 @@ func TestParser_Macros(t *testing.T) {
 
 	expectedCommands := []*CommandNode{
 		{
-			SourceInfo: sourceInfo(3, 4),
+			SourceInfo: sourceInfo(3, 4, sourceInfo(11, 5)),
 			Type:       cmdMyCmd,
 			Args: []ExpressionNode{
 				&IntegerNode{
-					SourceInfo: sourceInfo(3, 10),
+					SourceInfo: sourceInfo(3, 10, sourceInfo(11, 5)),
 					Value:      1,
 				},
 			},
 		},
 		{
-			SourceInfo: sourceInfo(3, 4),
+			SourceInfo: sourceInfo(3, 4, sourceInfo(7, 6, sourceInfo(12, 7))),
 			Type:       cmdMyCmd,
 			Args: []ExpressionNode{
 				&IntegerNode{
-					SourceInfo: sourceInfo(3, 10),
+					SourceInfo: sourceInfo(3, 10, sourceInfo(7, 6, sourceInfo(12, 7))),
 					Value:      1,
 				},
 			},
 		},
 		{
-			SourceInfo: sourceInfo(8, 4),
+			SourceInfo: sourceInfo(8, 4, sourceInfo(12, 7)),
 			Type:       cmdMyCmd,
 			Args: []ExpressionNode{
 				&IntegerNode{
-					SourceInfo: sourceInfo(12, 6),
+					SourceInfo: sourceInfo(12, 6, sourceInfo(12, 7)),
 					Value:      2,
 				},
 			},
@@ -667,41 +673,41 @@ func TestParser_MacrosWithLocalLabels(t *testing.T) {
 
 	expectedCommands := []*CommandNode{
 		{
-			SourceInfo: sourceInfo(4, 4),
+			SourceInfo: sourceInfo(4, 4, sourceInfo(8, 8)),
 			Type:       cmdMyCmd,
 			Args: []ExpressionNode{
 				&IdentifierNode{
-					SourceInfo: sourceInfo(4, 10),
+					SourceInfo: sourceInfo(4, 10, sourceInfo(8, 8)),
 					Identifier: identA,
 				},
 			},
 		},
 		{
-			SourceInfo: sourceInfo(5, 4),
+			SourceInfo: sourceInfo(5, 4, sourceInfo(8, 8)),
 			Type:       cmdMyCmd,
 			Args: []ExpressionNode{
 				&AddressNode{
-					SourceInfo: sourceInfo(5, 11),
+					SourceInfo: sourceInfo(5, 11, sourceInfo(8, 8)),
 					Address:    0,
 				},
 			},
 		},
 		{
-			SourceInfo: sourceInfo(4, 4),
+			SourceInfo: sourceInfo(4, 4, sourceInfo(9, 8)),
 			Type:       cmdMyCmd,
 			Args: []ExpressionNode{
 				&IdentifierNode{
-					SourceInfo: sourceInfo(4, 10),
+					SourceInfo: sourceInfo(4, 10, sourceInfo(9, 8)),
 					Identifier: identA,
 				},
 			},
 		},
 		{
-			SourceInfo: sourceInfo(5, 4),
+			SourceInfo: sourceInfo(5, 4, sourceInfo(9, 8)),
 			Type:       cmdMyCmd,
 			Args: []ExpressionNode{
 				&AddressNode{
-					SourceInfo: sourceInfo(5, 11),
+					SourceInfo: sourceInfo(5, 11, sourceInfo(9, 8)),
 					Address:    2,
 				},
 			},

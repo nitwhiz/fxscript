@@ -76,7 +76,21 @@ func newMacro(name string, argumentNames []string, body []*Token) *Macro {
 	}
 }
 
-func (m *Macro) Body(args [][]*Token) (*TokenSlice, error) {
+func tokWithParent(tok *Token, parent *SourceInfo, name string) *Token {
+	return &Token{
+		Type:  tok.Type,
+		Value: tok.Value,
+		SourceInfo: &SourceInfo{
+			Name:   name,
+			File:   tok.File,
+			Line:   tok.Line,
+			Column: tok.Column,
+			Parent: parent,
+		},
+	}
+}
+
+func (m *Macro) Body(args [][]*Token, parent *Token) (*TokenSlice, error) {
 	tokens := make([]*Token, 0, len(m.body.tokens))
 
 	var argName string
@@ -96,9 +110,11 @@ func (m *Macro) Body(args [][]*Token) (*TokenSlice, error) {
 				return nil, &SyntaxError{m.body.tokens[i].SourceInfo, &MissingMacroArgumentError{argName}}
 			}
 
-			tokens = append(tokens, args[argIdx]...)
+			for _, argTok := range args[argIdx] {
+				tokens = append(tokens, tokWithParent(argTok, parent.SourceInfo, m.name))
+			}
 		} else {
-			tokens = append(tokens, m.body.tokens[i])
+			tokens = append(tokens, tokWithParent(m.body.tokens[i], parent.SourceInfo, m.name))
 		}
 	}
 

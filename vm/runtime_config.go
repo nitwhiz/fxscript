@@ -10,9 +10,10 @@ type RuntimeConfig struct {
 	CallStackSize    int
 	OperandStackSize int
 	Hooks            *Hooks
+	Debug            bool
 }
 
-func (r *RuntimeConfig) ParserConfig(fs *fx.ParserFS, lookupFn fx.LookupFn) *fx.ParserConfig {
+func (r *RuntimeConfig) ParserConfig(fs fx.ParserFS, lookupFn fx.LookupFn) *fx.ParserConfig {
 	commandTypes := fx.CommandTypeTable{}
 
 	for _, cmd := range BaseCommands {

@@ -8,6 +8,8 @@ import (
 	"github.com/nitwhiz/ring-buffer"
 )
 
+var noFile = &SourceFile{}
+
 type TokenIterator struct {
 	prefix  string
 	src     TokenSource
@@ -43,6 +45,16 @@ func (i *TokenIterator) Filename() (fileName string) {
 
 	if fileName == "" && i.prev != nil {
 		return i.prev.Filename()
+	}
+
+	return
+}
+
+func (i *TokenIterator) SourceFile() (srcFile *SourceFile) {
+	srcFile = i.src.SourceFile()
+
+	if (srcFile == nil || srcFile == noFile) && i.prev != nil {
+		return i.prev.SourceFile()
 	}
 
 	return
@@ -184,6 +196,10 @@ func newTokenSlice(tokens []*Token) *TokenSlice {
 
 func (*TokenSlice) Filename() string {
 	return ""
+}
+
+func (*TokenSlice) SourceFile() *SourceFile {
+	return noFile
 }
 
 func (s *TokenSlice) NextToken() (tok *Token, err error) {

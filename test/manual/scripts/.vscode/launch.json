@@ -1,0 +1,12 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "fxscript",
+      "name": "Attach to FXScript",
+      "request": "attach",
+      "host": "localhost",
+      "port": 4711
+    }
+  ]
+}

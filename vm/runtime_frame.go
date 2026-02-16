@@ -56,11 +56,11 @@ func (f *Frame) popOperandStack() (int, bool) {
 }
 
 func (f *Frame) ExecuteCommand(cmd *fx.CommandNode) (pc int, jump bool, err error) {
-	f.preExecute(cmd)
+	f.preExecute(f, cmd)
 
 	pc, jump = f.handlers[cmd.Type](f, cmd.Args)
 
-	f.postExecute(cmd, pc, jump)
+	f.postExecute(f, cmd, pc, jump)
 
 	return
 }
