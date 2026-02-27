@@ -109,10 +109,11 @@ func (s *dapDebugSession) doStep() {
 func (s *dapDebugSession) checkBreakpointHit() (ok bool) {
 	s.mu.RLock()
 
-	for sf := range s.stackFrames.AllReverse() {
+	sf := s.stackFrames.Current()
+
+	if sf != nil {
 		if s.breakpoints.Has(sf.Source.Path, sf.Line) {
 			ok = true
-			break
 		}
 	}
 
@@ -379,6 +380,8 @@ func (s *dapDebugSession) send(msg dap.Message) {
 	}
 
 	_ = s.rw.Writer.Flush()
+
+	slog.Info("dap write message", slog.Any("msg", msg))
 }
 
 func (s *dapDebugSession) sendStopped(reason string, threadID int) {
