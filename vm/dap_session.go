@@ -26,7 +26,6 @@ type dapDebugSession struct {
 	runtime            *Runtime
 	identifiers        fx.IdentifierTable
 	commandSourceLines *FileLineList[*fx.CommandNode]
-	macroCallLocations *FileLineList[*fx.CommandNode]
 
 	stackFrames  *StackFrames
 	currentFrame *Frame
@@ -43,17 +42,9 @@ type dapDebugSession struct {
 
 func newSession(r *Runtime, identifiers fx.IdentifierTable, conn net.Conn) *dapDebugSession {
 	commandSourceLines := newFileLineList[*fx.CommandNode]()
-	macroCallLocations := newFileLineList[*fx.CommandNode]()
 
 	for _, cmd := range r.script.Commands() {
 		commandSourceLines.Add(cmd.File.Name, cmd.Line, cmd)
-
-		cmdSrc := cmd.SourceInfo
-
-		for cmdSrc.Parent != nil {
-			macroCallLocations.Add(cmdSrc.Parent.File.Name, cmdSrc.Parent.Line, cmd)
-			cmdSrc = cmdSrc.Parent
-		}
 	}
 
 	return &dapDebugSession{
@@ -63,7 +54,6 @@ func newSession(r *Runtime, identifiers fx.IdentifierTable, conn net.Conn) *dapD
 		runtime:            r,
 		identifiers:        identifiers,
 		commandSourceLines: commandSourceLines,
-		macroCallLocations: macroCallLocations,
 
 		stackFrames: newStackFrames(),
 
@@ -83,7 +73,7 @@ func (s *dapDebugSession) updateBreakpoints(file string, breakpoints []dap.Sourc
 	s.breakpoints.Delete(file)
 
 	for _, sbp := range breakpoints {
-		verified := s.commandSourceLines.Has(file, sbp.Line) || s.macroCallLocations.Has(file, sbp.Line)
+		verified := s.commandSourceLines.Has(file, sbp.Line)
 
 		bps = append(bps, dap.Breakpoint{Verified: verified, Line: sbp.Line})
 
