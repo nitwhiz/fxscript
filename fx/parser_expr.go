@@ -113,9 +113,9 @@ func (p *Parser) parseExpressionIdent(script *Script, tok *Token) (expr Expressi
 		return
 	}
 
-	var varIdent int
+	var variable *Variable
 
-	if varIdent, ok = script.variables[tok.Value]; ok {
+	if variable, ok = script.variables.ByName(tok.Value); ok {
 		var nextToken *Token
 
 		if nextToken, err = p.peek(); err != nil {
@@ -123,12 +123,12 @@ func (p *Parser) parseExpressionIdent(script *Script, tok *Token) (expr Expressi
 		}
 
 		if nextToken.Type == LBRACKET {
-			expr, err = p.parseArrayAccess(script, tok, varIdent)
+			expr, err = p.parseArrayAccess(script, tok, variable.Address)
 			return
 		}
 
 		expr = &IdentifierNode{
-			Identifier: Identifier(varIdent),
+			Identifier: Identifier(variable.Address),
 			SourceInfo: tok.SourceInfo,
 		}
 		return

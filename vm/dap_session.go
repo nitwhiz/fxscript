@@ -21,11 +21,12 @@ type dapDebugSession struct {
 	conn net.Conn
 	rw   *bufio.ReadWriter
 
-	breakpoints *BreakpointList
+	breakpoints *FileLineList
 
-	runtime            *Runtime
-	identifiers        fx.IdentifierTable
-	commandSourceLines *FileLineList[*fx.CommandNode]
+	runtime                 *Runtime
+	identifiers             fx.IdentifierTable
+	commandSourceLines      *FileLineList
+	macroExpansionLocations *FileLineList
 
 	stackFrames  *StackFrames
 	currentFrame *Frame
@@ -35,25 +36,36 @@ type dapDebugSession struct {
 
 	step bool
 
+	lastParentChain []*fx.SourceInfo
+
 	killed bool
 
 	mu *sync.RWMutex
 }
 
 func newSession(r *Runtime, identifiers fx.IdentifierTable, conn net.Conn) *dapDebugSession {
-	commandSourceLines := newFileLineList[*fx.CommandNode]()
+	commandSourceLines := newFileLineList()
+	macroExpansionLocations := newFileLineList()
 
 	for _, cmd := range r.script.Commands() {
-		commandSourceLines.Add(cmd.File.Name, cmd.Line, cmd)
+		commandSourceLines.Add(cmd.SourceInfo)
+
+		currSrc := cmd.SourceInfo
+
+		for currSrc.Parent != nil {
+			macroExpansionLocations.Add(currSrc.Parent)
+			currSrc = currSrc.Parent
+		}
 	}
 
 	return &dapDebugSession{
-		conn:               conn,
-		rw:                 bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn)),
-		breakpoints:        newBreakpointList(),
-		runtime:            r,
-		identifiers:        identifiers,
-		commandSourceLines: commandSourceLines,
+		conn:                    conn,
+		rw:                      bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn)),
+		breakpoints:             newFileLineList(),
+		runtime:                 r,
+		identifiers:             identifiers,
+		commandSourceLines:      commandSourceLines,
+		macroExpansionLocations: macroExpansionLocations,
 
 		stackFrames: newStackFrames(),
 
@@ -73,12 +85,12 @@ func (s *dapDebugSession) updateBreakpoints(file string, breakpoints []dap.Sourc
 	s.breakpoints.Delete(file)
 
 	for _, sbp := range breakpoints {
-		verified := s.commandSourceLines.Has(file, sbp.Line)
+		verified := s.commandSourceLines.HasAt(file, sbp.Line) || s.macroExpansionLocations.HasAt(file, sbp.Line)
 
 		bps = append(bps, dap.Breakpoint{Verified: verified, Line: sbp.Line})
 
 		if verified {
-			s.breakpoints.Add(file, sbp.Line)
+			s.breakpoints.AddAt(file, sbp.Line, nil)
 		}
 	}
 
@@ -102,7 +114,7 @@ func (s *dapDebugSession) checkBreakpointHit() (ok bool) {
 	sf := s.stackFrames.Current()
 
 	if sf != nil {
-		if s.breakpoints.Has(sf.Source.Path, sf.Line) {
+		if s.breakpoints.HasAt(sf.Source.Path, sf.Line) {
 			ok = true
 		}
 	}
@@ -242,10 +254,10 @@ func (s *dapDebugSession) handleScopes(r *dap.ScopesRequest) {
 		Response: s.response(r.Request),
 		Body: dap.ScopesResponseBody{
 			Scopes: []dap.Scope{
-				{Name: "Identifiers", VariablesReference: 1},
-				{Name: "Defines", VariablesReference: 2},
-				{Name: "Variables", VariablesReference: 3},
-				{Name: "Labels", VariablesReference: 4},
+				{Name: "Identifiers", VariablesReference: scopeIdentifiers},
+				{Name: "Defines", VariablesReference: scopeDefines},
+				{Name: "Variables", VariablesReference: scopeVariables},
+				{Name: "Labels", VariablesReference: scopeLabels},
 			},
 		},
 	})
@@ -255,7 +267,7 @@ func (s *dapDebugSession) handleVariables(r *dap.VariablesRequest) {
 	var variables []dap.Variable
 
 	switch r.Arguments.VariablesReference {
-	case 1:
+	case scopeIdentifiers:
 		if s.currentFrame == nil {
 			break
 		}
@@ -270,7 +282,7 @@ func (s *dapDebugSession) handleVariables(r *dap.VariablesRequest) {
 				},
 			)
 		}
-	case 2:
+	case scopeDefines:
 		if s.currentFrame == nil {
 			break
 		}
@@ -288,22 +300,34 @@ func (s *dapDebugSession) handleVariables(r *dap.VariablesRequest) {
 				)
 			}
 		}
-	case 3:
+	case scopeVariables:
 		if s.currentFrame == nil {
 			break
 		}
 
-		for name, addr := range s.runtime.script.Variables() {
-			variables = append(
-				variables,
-				dap.Variable{
-					Name:            name,
-					Value:           fmt.Sprintf("%d", s.currentFrame.getValue(fx.Identifier(addr))),
-					MemoryReference: fmt.Sprintf("%d", addr),
-				},
-			)
+		for variable := range s.runtime.script.Variables().All() {
+			if variable.Kind == fx.VariableKindInt {
+				variables = append(
+					variables,
+					dap.Variable{
+						Name:            variable.Name,
+						Value:           fmt.Sprintf("%d", s.currentFrame.getValue(fx.Identifier(variable.Address))),
+						MemoryReference: fmt.Sprintf("%d", variable.Address),
+					},
+				)
+			} else if variable.Kind == fx.VariableKindArray {
+				variables = append(
+					variables,
+					dap.Variable{
+						Name:               variable.Name,
+						Value:              fmt.Sprintf("Array[%d]", variable.Size),
+						VariablesReference: variable.Address,
+						IndexedVariables:   variable.Size,
+					},
+				)
+			}
 		}
-	case 4:
+	case scopeLabels:
 		for name, addr := range s.runtime.script.Labels() {
 			variables = append(
 				variables,
@@ -313,6 +337,23 @@ func (s *dapDebugSession) handleVariables(r *dap.VariablesRequest) {
 					MemoryReference: fmt.Sprintf("%d", addr),
 				},
 			)
+		}
+	default:
+		variable, ok := s.runtime.script.Variables().ByAddress(r.Arguments.VariablesReference)
+
+		if ok {
+			l := max(variable.Size, r.Arguments.Count)
+
+			for i := r.Arguments.Start; i < l; i++ {
+				variables = append(
+					variables,
+					dap.Variable{
+						Name:            fmt.Sprintf("%d", i),
+						Value:           fmt.Sprintf("%d", s.currentFrame.getValue(fx.Identifier(variable.AddrAt(i)))),
+						MemoryReference: fmt.Sprintf("%d", variable.AddrAt(i)),
+					},
+				)
+			}
 		}
 	}
 
@@ -414,11 +455,6 @@ func (s *dapDebugSession) setPause(pause bool) {
 	s.pauseCond.L.Unlock()
 
 	s.pauseCond.Signal()
-}
-
-func (s *dapDebugSession) SetStep(step bool) {
-	s.step = step
-	s.setPause(false)
 }
 
 func (s *dapDebugSession) setKilled(killed bool) {

@@ -8,16 +8,13 @@ import (
 )
 
 type dapState struct {
-	session *dapDebugSession
-
+	session     *dapDebugSession
 	sessionCond *sync.Cond
-	mu          *sync.RWMutex
 }
 
 var ds = dapState{
 	session:     nil,
 	sessionCond: sync.NewCond(&sync.Mutex{}),
-	mu:          &sync.RWMutex{},
 }
 
 func withSession(callback func(s *dapDebugSession)) {
@@ -28,13 +25,6 @@ func withSession(callback func(s *dapDebugSession)) {
 		ds.sessionCond.Wait()
 	}
 
-	ds.mu.RLock()
-	defer ds.mu.RUnlock()
-
-	if ds.session == nil {
-		return
-	}
-
 	if ds.session.killed {
 		slog.Warn("use of killed dap session")
 		return
@@ -42,14 +32,12 @@ func withSession(callback func(s *dapDebugSession)) {
 
 	ds.session.waitForPause()
 
-	defer callback(ds.session)
+	callback(ds.session)
 }
 
 func (d *dapState) setSession(s *dapDebugSession) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
 	d.sessionCond.L.Lock()
+	defer d.sessionCond.L.Unlock()
 
 	if s != nil && d.session != nil && !d.session.killed {
 		// todo: panic is a bit dramatic
@@ -57,8 +45,6 @@ func (d *dapState) setSession(s *dapDebugSession) {
 	}
 
 	d.session = s
-
-	d.sessionCond.L.Unlock()
 
 	d.sessionCond.Signal()
 }

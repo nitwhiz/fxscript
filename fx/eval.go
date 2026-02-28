@@ -315,7 +315,7 @@ func (s *Script) EvalArrayAccessAddress(n *ArrayAccessNode, getValue IdentifierV
 		return
 	}
 
-	baseVarName, ok := s.variableNames[int(n.Variable)]
+	variable, ok := s.variables.ByAddress(int(n.Variable))
 
 	if !ok {
 		err = &RuntimeError{n.SourceInfo, &UnresolvedSymbolError{fmt.Sprintf("%d", n.Variable)}}
@@ -323,12 +323,7 @@ func (s *Script) EvalArrayAccessAddress(n *ArrayAccessNode, getValue IdentifierV
 	}
 
 	if indexInt > 0 {
-		addr, ok = s.variables[fmt.Sprintf("__%s_%d", baseVarName, indexInt)]
-
-		if !ok {
-			err = &RuntimeError{n.SourceInfo, &UnresolvedSymbolError{fmt.Sprintf("%d+%d", n.Variable, indexInt)}}
-			return
-		}
+		addr = variable.AddrAt(indexInt)
 	} else {
 		addr = int(n.Variable)
 	}

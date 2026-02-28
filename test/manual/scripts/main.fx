@@ -14,8 +14,12 @@ macro m3
   m1
 endmacro
 
+var myArray[22]
+
 _main:
 
+  set myArray[3], 13
+  set myArray[4], 13
   call test
   exit
 

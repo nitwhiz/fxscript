@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net"
 	"os"
+	"slices"
 
 	"github.com/nitwhiz/fxscript/fx"
 )
@@ -19,7 +20,34 @@ func initDAPHooks(r *Runtime) {
 		withSession(func(session *dapDebugSession) {
 			cmdSrc := cmd.SourceInfo
 
-			session.stackFrames.AddParents(cmdSrc)
+			session.stackFrames.RemoveMacros()
+
+			if cmdSrc.Parent != nil {
+				currCmdSrc := cmdSrc
+				newChain := make([]*fx.SourceInfo, 0)
+				srcChain := make([]*fx.SourceInfo, 0)
+
+				for currCmdSrc.Parent != nil {
+					newChain = append(newChain, currCmdSrc.Parent)
+					srcChain = append(srcChain, currCmdSrc)
+					currCmdSrc = currCmdSrc.Parent
+				}
+
+				for i := len(newChain) - 1; i >= 0; i-- {
+					p := newChain[i]
+					if !slices.Contains(session.lastParentChain, p) {
+						session.stackFrames.Update(p)
+						session.checkBreakpointHit()
+					}
+
+					session.stackFrames.AddParent(srcChain[i])
+				}
+
+				session.lastParentChain = newChain
+			} else {
+				session.lastParentChain = nil
+			}
+
 			session.stackFrames.Update(cmdSrc)
 
 			if session.step {
@@ -27,14 +55,12 @@ func initDAPHooks(r *Runtime) {
 			} else {
 				session.checkBreakpointHit()
 			}
-
-			session.stackFrames.RemoveParents(cmdSrc)
 		})
 	})
 
 	r.hooks.PostExecute.Add(-100, func(f *Frame, cmd *fx.CommandNode, jumpPc int, jump bool) {
 		withSession(func(session *dapDebugSession) {
-			if jump == false {
+			if !jump {
 				return
 			}
 

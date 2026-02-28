@@ -12,8 +12,7 @@ type Script struct {
 	defines map[string]ExpressionNode
 	macros  map[string]*Macro
 
-	variables     map[string]int
-	variableNames map[int]string
+	variables *Variables
 }
 
 func newScript() *Script {
@@ -25,22 +24,8 @@ func newScript() *Script {
 		defines: make(map[string]ExpressionNode),
 		macros:  make(map[string]*Macro),
 
-		variables:     make(map[string]int),
-		variableNames: make(map[int]string),
+		variables: newVariables(),
 	}
-}
-
-func (s *Script) addVariable(varName string) (offset int) {
-	offset = VariableOffset + len(s.variables)
-
-	s.addVariableWithOffset(varName, offset)
-
-	return
-}
-
-func (s *Script) addVariableWithOffset(varName string, offset int) {
-	s.variables[varName] = offset
-	s.variableNames[offset] = varName
 }
 
 func (s *Script) addSymbol(label string, addr *AddressNode) {
@@ -90,6 +75,6 @@ func (s *Script) Symbols() map[string][]*AddressNode {
 	return s.symbols
 }
 
-func (s *Script) Variables() map[string]int {
+func (s *Script) Variables() *Variables {
 	return s.variables
 }

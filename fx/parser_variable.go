@@ -72,8 +72,6 @@ func (p *Parser) parseVariableDeclaration(script *Script) (err error) {
 		return
 	}
 
-	offset := script.addVariable(nameIdent.Value)
-
 	next, err := p.peek()
 
 	if err != nil {
@@ -87,10 +85,9 @@ func (p *Parser) parseVariableDeclaration(script *Script) (err error) {
 			return
 		}
 
-		// skip zero
-		for i := range l - 1 {
-			script.addVariableWithOffset(fmt.Sprintf("__%s_%d", nameIdent.Value, i+1), offset+i+1)
-		}
+		script.variables.Alloc(nameIdent.Value, l)
+	} else {
+		script.variables.New(nameIdent.Value)
 	}
 
 	return

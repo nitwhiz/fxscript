@@ -97,7 +97,3 @@ func (r *Runtime) Call(label string, env Environment) bool {
 func (r *Runtime) Script() *fx.Script {
 	return r.script
 }
-
-func (r *Runtime) MemorySize() int {
-	return len(r.script.Variables())
-}

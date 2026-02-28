@@ -13,32 +13,60 @@ import (
 	"github.com/nitwhiz/fxscript/fx"
 )
 
-type FileLineList[T any] struct {
-	elements map[string]T
+const (
+	scopeIdentifiers = 1
+	scopeDefines     = 2
+	scopeVariables   = 3
+	scopeLabels      = 4
+)
+
+type FileLineList struct {
+	elements map[string]*fx.SourceInfo
 }
 
-func newFileLineList[T any]() *FileLineList[T] {
-	return (&FileLineList[T]{}).ClearAll()
+func newFileLineList() *FileLineList {
+	return (&FileLineList{}).ClearAll()
 }
 
-func (l *FileLineList[T]) String() string {
+func (l *FileLineList) String() string {
 	return fmt.Sprintf("%v", l.elements)
 }
 
-func (l *FileLineList[T]) canonical(file string, line int) string {
+func (l *FileLineList) canonical(file string, line int) string {
 	return file + ":" + strconv.Itoa(line)
 }
 
-func (l *FileLineList[T]) Add(file string, line int, value T) {
-	l.elements[l.canonical(file, line)] = value
+func (l *FileLineList) GetAt(file string, line int) (s *fx.SourceInfo, ok bool) {
+	if s, ok = l.elements[l.canonical(file, line)]; ok {
+		return
+	}
+
+	return nil, false
 }
 
-func (l *FileLineList[T]) Has(file string, line int) (ok bool) {
+func (l *FileLineList) Add(s *fx.SourceInfo) {
+	l.elements[l.canonical(s.File.Name, s.Line)] = s
+}
+
+func (l *FileLineList) AddAt(file string, line int, s *fx.SourceInfo) {
+	l.elements[l.canonical(file, line)] = s
+}
+
+func (l *FileLineList) Has(s *fx.SourceInfo) (ok bool) {
+	if s == nil {
+		return
+	}
+
+	_, ok = l.elements[l.canonical(s.File.Name, s.Line)]
+	return
+}
+
+func (l *FileLineList) HasAt(file string, line int) (ok bool) {
 	_, ok = l.elements[l.canonical(file, line)]
 	return
 }
 
-func (l *FileLineList[T]) Delete(file string) {
+func (l *FileLineList) Delete(file string) {
 	for k := range l.elements {
 		if strings.HasPrefix(k, file+":") {
 			delete(l.elements, k)
@@ -46,25 +74,13 @@ func (l *FileLineList[T]) Delete(file string) {
 	}
 }
 
-func (l *FileLineList[T]) All() iter.Seq2[string, T] {
+func (l *FileLineList) All() iter.Seq2[string, *fx.SourceInfo] {
 	return maps.All(l.elements)
 }
 
-func (l *FileLineList[T]) ClearAll() *FileLineList[T] {
-	l.elements = make(map[string]T)
+func (l *FileLineList) ClearAll() *FileLineList {
+	l.elements = make(map[string]*fx.SourceInfo)
 	return l
-}
-
-type BreakpointList struct {
-	*FileLineList[struct{}]
-}
-
-func newBreakpointList() *BreakpointList {
-	return &BreakpointList{newFileLineList[struct{}]()}
-}
-
-func (b *BreakpointList) Add(file string, line int) {
-	b.FileLineList.Add(file, line, struct{}{})
 }
 
 type StackFrames struct {
@@ -83,18 +99,6 @@ func (s *StackFrames) Current() *dap.StackFrame {
 	}
 
 	return &s.frames[0]
-}
-
-func (s *StackFrames) IsCurrent(src *fx.SourceInfo) bool {
-	if src == nil {
-		return false
-	}
-
-	if len(s.frames) == 0 {
-		return false
-	}
-
-	return s.frames[0].Column == src.Column && s.frames[0].Line == src.Line && s.frames[0].Source.Path == src.File.Name
 }
 
 func (s *StackFrames) Update(cmdSrc *fx.SourceInfo) {
@@ -119,12 +123,8 @@ func (s *StackFrames) Add(frame dap.StackFrame) {
 	)
 }
 
-func (s *StackFrames) AddParents(src *fx.SourceInfo) {
+func (s *StackFrames) AddParent(src *fx.SourceInfo) {
 	if src.Parent != nil {
-		s.AddParents(src.Parent)
-
-		s.Update(src.Parent)
-
 		s.Add(dap.StackFrame{
 			Name:   "MACRO " + src.Name,
 			Line:   src.Parent.Line,
@@ -136,12 +136,14 @@ func (s *StackFrames) AddParents(src *fx.SourceInfo) {
 	}
 }
 
-func (s *StackFrames) RemoveParents(src *fx.SourceInfo) {
+func (s *StackFrames) RemoveMacros() {
 	n := 0
 
-	for src.Parent != nil {
+	for _, f := range s.frames {
+		if !strings.HasPrefix(f.Name, "MACRO ") {
+			break
+		}
 		n++
-		src = src.Parent
 	}
 
 	s.Remove(n)
@@ -181,16 +183,6 @@ func (s *StackFrames) All() iter.Seq[dap.StackFrame] {
 	return func(yield func(v dap.StackFrame) bool) {
 		for _, frame := range s.frames {
 			if !yield(frame) {
-				return
-			}
-		}
-	}
-}
-
-func (s *StackFrames) AllReverse() iter.Seq[dap.StackFrame] {
-	return func(yield func(v dap.StackFrame) bool) {
-		for i := len(s.frames) - 1; i >= 0; i-- {
-			if !yield(s.frames[i]) {
 				return
 			}
 		}
